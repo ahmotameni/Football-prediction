@@ -1,0 +1,75 @@
+{
+  "123456789": {
+    "username": "admin_user",
+    "first_name": "Admin",
+    "last_name": "User",
+    "registered_at": "2025-05-04T19:09:20.995889",
+    "is_admin": true,
+    "score": 11
+  },
+  "987654321": {
+    "username": "regular_user",
+    "first_name": "Regular",
+    "last_name": "User",
+    "registered_at": "2025-05-04T19:09:20.995930",
+    "is_admin": false,
+    "score": -5
+  },
+  "111222333": {
+    "username": "Ahmotameni",
+    "first_name": "Amir",
+    "last_name": "Motameni",
+    "registered_at": "2025-05-04T19:09:20.995934",
+    "is_admin": false,
+    "score": -1
+  },
+  "819621350": {
+    "username": "user_0",
+    "first_name": "User 0",
+    "registered_at": "2025-05-04T19:09:20.995964",
+    "is_admin": false,
+    "score": 6
+  },
+  "259566842": {
+    "username": "user_1",
+    "first_name": "User 1",
+    "registered_at": "2025-05-04T19:09:20.995973",
+    "is_admin": false,
+    "score": 6
+  },
+  "356666435": {
+    "username": "user_2",
+    "first_name": "User 2",
+    "registered_at": "2025-05-04T19:09:20.995978",
+    "is_admin": false,
+    "score": -5
+  },
+  "560584173": {
+    "username": "user_3",
+    "first_name": "User 3",
+    "registered_at": "2025-05-04T19:09:20.995984",
+    "is_admin": false,
+    "score": -3
+  },
+  "118281561": {
+    "username": "user_4",
+    "first_name": "User 4",
+    "registered_at": "2025-05-04T19:09:20.995988",
+    "is_admin": false,
+    "score": 6
+  },
+  "54227407": {
+    "username": "Ahmotameni",
+    "first_name": "AmirHossein",
+    "last_name": "Motameni",
+    "registered_at": "2025-05-04T19:50:54.227553",
+    "is_admin": false
+  },
+  "placeholder_Ahmotameni1": {
+    "username": "Ahmotameni1",
+    "first_name": "Ahmotameni1",
+    "registered_at": "2025-05-04T19:49:06.757171",
+    "is_admin": true,
+    "score": 0
+  }
+}
