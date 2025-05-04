@@ -42,6 +42,7 @@ club_world_cup_bot/
 |   |— admin_commands.py    # admin-only commands
 |— keyboards/
 |   |— prediction_keyboard.py
+|   |— persistent_keyboard.py
 |— messages/
 |   |— strings.py           # user-facing text messages
 |— services/
@@ -53,29 +54,39 @@ club_world_cup_bot/
     |— users.json
     |— predictions.json
     |— matches.json
-    |— scores.csv
+    |— exports/             # exported CSV files
 ```
 
 ---
 
 ## 🚀 Getting Started
 1. Clone this repo
-2. Create a `.env` file with your `TELEGRAM_TOKEN`
+2. Create your credentials file:
+```bash
+cp credentials.env.sample credentials.env
+# Edit credentials.env to add your Telegram token and admin username
+```
 3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
-4. Run the bot locally:
+4. Run the bot:
 ```bash
-python bot.py
+python run_bot.py
 ```
 5. Deploy to Heroku:
 ```bash
 heroku create
 heroku config:set TELEGRAM_TOKEN=your_token_here
+heroku config:set ADMIN_USER_ID=your_username
 heroku stack:set container
 git push heroku main
 ```
+
+---
+
+## 🔐 Security Note
+The `credentials.env` file contains sensitive information and is excluded from version control by `.gitignore`. Never commit this file to your repository.
 
 ---
 
@@ -85,11 +96,10 @@ You can customize the scoring logic in `config/scoring_rules.py`. All calculatio
 ---
 
 ## 🔐 Admin Commands
-- `/admin` – show admin options
-- `/addmatch` – manually add a new match
-- `/setresult` – input final result or trigger API fetch
-- `/updateleaderboard` – recalculate points
-- `/exportcsv` – export all data
+- Admin Panel – show admin options
+- Update Scores – recalculate points
+- Export CSV – export all data
+- View Exports – browse exported files
 
 ---
 
