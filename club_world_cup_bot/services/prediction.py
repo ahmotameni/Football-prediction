@@ -87,6 +87,11 @@ def set_match_result(match_id, home_goals, away_goals, resolution_type=None):
     
     matches[match_id]['locked'] = True
     save_data(MATCHES_FILE, matches)
+    
+    # Update leaderboard after setting match result
+    from .scoring import update_leaderboard
+    update_leaderboard()
+    
     return True
 
 def save_prediction(user_id, match_id, home_goals, away_goals, resolution_type=None):

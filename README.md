@@ -5,9 +5,12 @@ A Telegram bot built for friendly match predictions during the 2025 FIFA Club Wo
 ---
 
 ## ✨ Features
+- Integrated match viewing and prediction interface
+- Status indicators with emojis for better UX
 - Score predictions for both group and knockout stages
 - Inline keyboards (no typing needed)
 - Scoring based on correctness (winner, goal diff, etc.)
+- Points displayed alongside results for completed matches
 - Manual + API-based result input
 - Live leaderboard
 - Admin panel for managing matches and results
@@ -95,11 +98,23 @@ You can customize the scoring logic in `config/scoring_rules.py`. All calculatio
 
 ---
 
+## 🎮 User Interface
+The bot features an intuitive interface with emoji status indicators:
+- ⚽ Open matches ready for prediction
+- 🔮 Matches you've already predicted
+- 🔒 Locked matches (no longer accepting predictions)
+- ✅ Completed matches with results
+
+Users can view all matches, make predictions, and see their scoring results all in one interface.
+
+---
+
 ## 🔐 Admin Commands
 - Admin Panel – show admin options
+- Add Match – create new matches
+- Set Result – add match results
 - Update Scores – recalculate points
 - Export CSV – export all data
-- View Exports – browse exported files
 
 ---
 

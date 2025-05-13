@@ -119,7 +119,10 @@ async def cmd_admin(message: Message):
     # Ensure the user has the admin reply keyboard
     reply_keyboard = get_admin_reply_keyboard()
     
-    await message.answer(ADMIN_PANEL, reply_markup=inline_keyboard)
+    await message.answer(
+        ADMIN_PANEL, 
+        reply_markup=inline_keyboard
+    )
 
 @router.callback_query(F.data == "admin_addmatch")
 async def process_add_match(callback: CallbackQuery, state: FSMContext):
@@ -310,7 +313,8 @@ async def process_result_away_goals(message: Message, state: FSMContext):
             await message.answer(
                 f"{RESULT_SET}\n\n"
                 f"Match: {match['team1']} vs {match['team2']}\n"
-                f"Result: {home_goals}-{away_goals}"
+                f"Result: {home_goals}-{away_goals}\n\n"
+                f"{LEADERBOARD_UPDATED}"
             )
     except ValueError:
         await message.answer("Please enter a valid number:")
@@ -347,7 +351,8 @@ async def process_result_resolution_type(message: Message, state: FSMContext):
     await message.answer(
         f"{RESULT_SET}\n\n"
         f"Match: {match['team1']} vs {match['team2']}\n"
-        f"Result: {home_goals}-{away_goals} ({resolution_text})"
+        f"Result: {home_goals}-{away_goals} ({resolution_text})\n\n"
+        f"{LEADERBOARD_UPDATED}"
     )
 
 @router.message(Command("exportedfiles"))

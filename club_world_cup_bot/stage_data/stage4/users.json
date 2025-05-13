@@ -1,0 +1,106 @@
+{
+  "54227407": {
+    "username": "Ahmotameni",
+    "first_name": "AmirHossein",
+    "last_name": "Motameni",
+    "registered_at": "2025-05-10T00:54:42.029415",
+    "is_admin": false,
+    "score": 20
+  },
+  "123456789": {
+    "username": "Ahmotameni1",
+    "first_name": "Admin",
+    "last_name": "User",
+    "registered_at": "2025-05-13T23:10:53.937048",
+    "is_admin": true,
+    "score": 10
+  },
+  "987654321": {
+    "username": "regular_user",
+    "first_name": "Regular",
+    "last_name": "User",
+    "registered_at": "2025-05-13T23:10:53.937067",
+    "is_admin": false,
+    "score": 23
+  },
+  "272224901": {
+    "username": "user_1",
+    "first_name": "User 1",
+    "last_name": "Last1",
+    "registered_at": "2025-05-13T23:10:53.937096",
+    "is_admin": false,
+    "score": 13
+  },
+  "455129581": {
+    "username": "user_2",
+    "first_name": "User 2",
+    "last_name": "Last2",
+    "registered_at": "2025-05-13T23:10:53.937102",
+    "is_admin": false,
+    "score": 21
+  },
+  "314556876": {
+    "username": "user_3",
+    "first_name": "User 3",
+    "last_name": "Last3",
+    "registered_at": "2025-05-13T23:10:53.937104",
+    "is_admin": false,
+    "score": 10
+  },
+  "257752930": {
+    "username": "user_4",
+    "first_name": "User 4",
+    "last_name": "Last4",
+    "registered_at": "2025-05-13T23:10:53.937107",
+    "is_admin": false,
+    "score": 3
+  },
+  "514177609": {
+    "username": "user_5",
+    "first_name": "User 5",
+    "last_name": "Last5",
+    "registered_at": "2025-05-13T23:10:53.937109",
+    "is_admin": false,
+    "score": 33
+  },
+  "838602803": {
+    "username": "user_6",
+    "first_name": "User 6",
+    "last_name": "Last6",
+    "registered_at": "2025-05-13T23:10:53.937111",
+    "is_admin": false,
+    "score": -2
+  },
+  "545960936": {
+    "username": "user_7",
+    "first_name": "User 7",
+    "last_name": "Last7",
+    "registered_at": "2025-05-13T23:10:53.937113",
+    "is_admin": false,
+    "score": 9
+  },
+  "452676883": {
+    "username": "user_8",
+    "first_name": "User 8",
+    "last_name": "Last8",
+    "registered_at": "2025-05-13T23:10:53.937122",
+    "is_admin": false,
+    "score": 18
+  },
+  "375046358": {
+    "username": "user_9",
+    "first_name": "User 9",
+    "last_name": "Last9",
+    "registered_at": "2025-05-13T23:10:53.937126",
+    "is_admin": false,
+    "score": 7
+  },
+  "495739443": {
+    "username": "user_10",
+    "first_name": "User 10",
+    "last_name": "Last10",
+    "registered_at": "2025-05-13T23:10:53.937128",
+    "is_admin": false,
+    "score": 18
+  }
+}

@@ -79,4 +79,63 @@ def get_match_list_keyboard(matches, is_admin=False):
         button_text = f"{status} {match['team1']} vs {match['team2']} - {match['time']}"
         kb.button(text=button_text, callback_data=f"{prefix}{match_id}")
     
+    return kb.adjust(1).as_markup()
+
+def get_enhanced_matches_keyboard(matches, user_predictions=None):
+    """
+    Generate an enhanced keyboard showing matches with prediction status and results.
+    
+    Args:
+        matches (dict): Dictionary of matches
+        user_predictions (dict, optional): Dictionary of user predictions
+        
+    Returns:
+        InlineKeyboardMarkup: Keyboard markup
+    """
+    kb = InlineKeyboardBuilder()
+    user_predictions = user_predictions or {}
+    
+    for match_id, match in matches.items():
+        # Determine match status
+        is_locked = match.get("locked", False)
+        has_result = "result" in match
+        has_prediction = match_id in user_predictions
+        
+        # Choose appropriate emoji based on status
+        if has_result:
+            # Completed match
+            emoji = "✅ "
+            callback = f"viewresult_{match_id}"
+        elif is_locked:
+            # Locked but no result yet
+            emoji = "🔒 "
+            callback = f"viewmatch_{match_id}"
+        elif has_prediction:
+            # User has predicted this match
+            emoji = "🔮 "
+            callback = f"match_{match_id}"
+        else:
+            # Open for prediction
+            emoji = "⚽ "
+            callback = f"match_{match_id}"
+        
+        # Format time to be more readable
+        match_time = match['time']
+        
+        # Create button text with prediction info if available
+        button_text = f"{emoji}{match['team1']} vs {match['team2']} - {match_time}"
+        
+        # Add prediction info if user has predicted
+        if has_prediction:
+            pred = user_predictions[match_id]
+            pred_text = f"{pred['home_goals']}-{pred['away_goals']}"
+            
+            if match.get("is_knockout", False) and "resolution_type" in pred:
+                res_short = {"FT": "FT", "ET": "ET", "PEN": "P"}
+                pred_text += f" ({res_short.get(pred['resolution_type'], pred['resolution_type'])})"
+            
+            button_text += f" [{pred_text}]"
+        
+        kb.button(text=button_text, callback_data=callback)
+    
     return kb.adjust(1).as_markup() 

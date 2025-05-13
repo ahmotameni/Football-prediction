@@ -10,12 +10,12 @@ from club_world_cup_bot.messages.strings import (
     WELCOME_MESSAGE, HELP_MESSAGE, PREDICTION_START, NO_MATCHES_TO_PREDICT,
     PREDICTION_SUCCESS, PREDICTION_UPDATED, PREDICTION_LOCKED, NO_PREDICTIONS,
     MATCH_LIST_HEADER, NO_UPCOMING_MATCHES, LEADERBOARD_HEADER, EMPTY_LEADERBOARD, 
-    RANK_MESSAGE
+    RANK_MESSAGE, ENHANCED_MATCHES_HEADER, NO_MATCH_RESULTS
 )
 from club_world_cup_bot.keyboards.prediction_keyboard import (
     get_matches_keyboard, get_home_goals_keyboard, 
     get_away_goals_keyboard, get_resolution_type_keyboard, 
-    get_match_list_keyboard
+    get_match_list_keyboard, get_enhanced_matches_keyboard
 )
 from club_world_cup_bot.keyboards.persistent_keyboard import (
     get_user_keyboard, get_admin_keyboard
@@ -24,7 +24,7 @@ from club_world_cup_bot.services.prediction import (
     register_user, get_upcoming_matches, get_matches,
     save_prediction, get_user_predictions, is_admin, is_admin_by_username
 )
-from club_world_cup_bot.services.scoring import get_leaderboard, get_user_rank
+from club_world_cup_bot.services.scoring import get_leaderboard, get_user_rank, calculate_score
 
 router = Router()
 
@@ -58,15 +58,10 @@ async def button_help(message: Message):
     """Handle the Help button."""
     await cmd_help(message)
 
-@router.message(F.text == "🔮 Predict")
-async def button_predict(message: Message):
-    """Handle the Predict button."""
-    await cmd_predict(message)
-
-@router.message(F.text == "📅 Matches")
+@router.message(F.text == "⚽ Matches")
 async def button_matches(message: Message):
-    """Handle the Matches button."""
-    await cmd_matches(message)
+    """Handle the Matches button - enhanced version that combines predict and matches."""
+    await cmd_enhanced_matches(message)
 
 @router.message(F.text == "📋 My Predictions")
 async def button_my_predictions(message: Message):
@@ -85,15 +80,29 @@ async def button_my_rank(message: Message):
 
 @router.message(Command("predict"))
 async def cmd_predict(message: Message):
-    """Handle the /predict command."""
-    upcoming_matches = get_upcoming_matches()
+    """Handle the /predict command - now redirects to enhanced matches."""
+    await cmd_enhanced_matches(message)
+
+@router.message(Command("enhanced_matches"))
+async def cmd_enhanced_matches(message: Message):
+    """
+    Enhanced matches command that combines match viewing and prediction.
+    Shows matches with their status, user predictions if available, and results.
+    """
+    user_id = str(message.from_user.id)
+    matches = get_matches()
     
-    if not upcoming_matches:
+    if not matches:
         await message.answer(NO_MATCHES_TO_PREDICT)
         return
     
-    keyboard = get_matches_keyboard(upcoming_matches)
-    await message.answer(PREDICTION_START, reply_markup=keyboard)
+    # Get user predictions if any
+    user_predictions = get_user_predictions(user_id)
+    
+    # Create enhanced keyboard with predictions and status
+    keyboard = get_enhanced_matches_keyboard(matches, user_predictions)
+    
+    await message.answer(ENHANCED_MATCHES_HEADER, reply_markup=keyboard)
 
 @router.callback_query(F.data.startswith("match_"))
 async def process_match_selection(callback: CallbackQuery):
@@ -159,9 +168,16 @@ async def process_away_goals(callback: CallbackQuery):
         user_id = str(callback.from_user.id)
         save_prediction(user_id, match_id, int(home_goals), int(away_goals))
         
+        # After saving, show the enhanced matches list again
+        matches = get_matches()
+        user_predictions = get_user_predictions(user_id)
+        keyboard = get_enhanced_matches_keyboard(matches, user_predictions)
+        
         await callback.message.edit_text(
-            f"Your prediction for {match['team1']} vs {match['team2']} "
-            f"is {home_goals}-{away_goals}.\n\n{PREDICTION_SUCCESS}"
+            f"✅ Your prediction for {match['team1']} vs {match['team2']} "
+            f"is {home_goals}-{away_goals}.\n\n"
+            f"All matches:",
+            reply_markup=keyboard
         )
 
 @router.callback_query(F.data.startswith("resolution_"))
@@ -187,14 +203,20 @@ async def process_resolution_type(callback: CallbackQuery):
         "PEN": "Penalties"
     }.get(resolution_type, resolution_type)
     
+    # After saving, show the enhanced matches list again
+    user_predictions = get_user_predictions(user_id)
+    keyboard = get_enhanced_matches_keyboard(matches, user_predictions)
+    
     await callback.message.edit_text(
-        f"Your prediction for {match['team1']} vs {match['team2']} "
-        f"is {home_goals}-{away_goals} ({resolution_text}).\n\n{PREDICTION_SUCCESS}"
+        f"✅ Your prediction for {match['team1']} vs {match['team2']} "
+        f"is {home_goals}-{away_goals} ({resolution_text}).\n\n"
+        f"All matches:",
+        reply_markup=keyboard
     )
 
 @router.message(Command("mypredictions"))
 async def cmd_my_predictions(message: Message):
-    """Handle the /mypredictions command."""
+    """Handle the /mypredictions command - now using the enhanced match display."""
     user_id = str(message.from_user.id)
     predictions = get_user_predictions(user_id)
     
@@ -203,33 +225,17 @@ async def cmd_my_predictions(message: Message):
         return
     
     matches = get_matches()
+    # Filter to only show matches that user has predicted
+    predicted_matches = {match_id: match for match_id, match in matches.items() 
+                        if match_id in predictions}
     
-    response = "Your predictions:\n\n"
-    for match_id, prediction in predictions.items():
-        if match_id not in matches:
-            continue
-        
-        match = matches[match_id]
-        pred_text = f"{prediction['home_goals']}-{prediction['away_goals']}"
-        
-        if match.get("is_knockout", False) and "resolution_type" in prediction:
-            pred_text += f" ({prediction['resolution_type']})"
-        
-        response += f"• {match['team1']} vs {match['team2']}: {pred_text}\n"
-    
-    await message.answer(response)
+    keyboard = get_enhanced_matches_keyboard(predicted_matches, predictions)
+    await message.answer("📋 Your Predictions:", reply_markup=keyboard)
 
 @router.message(Command("matches"))
 async def cmd_matches(message: Message):
-    """Handle the /matches command."""
-    upcoming_matches = get_upcoming_matches()
-    
-    if not upcoming_matches:
-        await message.answer(NO_UPCOMING_MATCHES)
-        return
-    
-    keyboard = get_match_list_keyboard(upcoming_matches)
-    await message.answer(MATCH_LIST_HEADER, reply_markup=keyboard)
+    """Handle the /matches command - redirects to enhanced matches."""
+    await cmd_enhanced_matches(message)
 
 @router.callback_query(F.data.startswith("viewmatch_"))
 async def process_view_match(callback: CallbackQuery):
@@ -245,7 +251,7 @@ async def process_view_match(callback: CallbackQuery):
         return
     
     match_type = "Knockout Stage" if match.get("is_knockout", False) else "Group Stage"
-    match_status = "Locked" if match.get("locked", False) else "Open for predictions"
+    match_status = "Locked 🔒" if match.get("locked", False) else "Open for predictions ⚽"
     
     response = (
         f"Match: {match['team1']} vs {match['team2']}\n"
@@ -275,9 +281,62 @@ async def process_view_match(callback: CallbackQuery):
         if match.get("is_knockout", False) and "resolution_type" in pred:
             pred_text += f" ({pred['resolution_type']})"
         
-        response += f"\nYour prediction: {pred_text}"
+        response += f"\n🔮 Your prediction: {pred_text}"
     
-    keyboard = get_match_list_keyboard(get_upcoming_matches())
+    # Get back to matches list
+    user_predictions = get_user_predictions(user_id)
+    keyboard = get_enhanced_matches_keyboard(matches, user_predictions)
+    
+    await callback.message.edit_text(response, reply_markup=keyboard)
+
+@router.callback_query(F.data.startswith("viewresult_"))
+async def process_view_result(callback: CallbackQuery):
+    """Handle viewing match results."""
+    await callback.answer()
+    
+    match_id = callback.data.split("_")[1]
+    matches = get_matches()
+    match = matches.get(match_id)
+    user_id = str(callback.from_user.id)
+    predictions = get_user_predictions(user_id)
+    
+    if not match or "result" not in match:
+        await callback.message.edit_text(NO_MATCH_RESULTS)
+        return
+    
+    match_type = "Knockout Stage" if match.get("is_knockout", False) else "Group Stage"
+    result = match["result"]
+    result_text = f"{result['home_goals']}-{result['away_goals']}"
+    
+    if match.get("is_knockout", False) and "resolution_type" in result:
+        result_text += f" ({result['resolution_type']})"
+    
+    response = (
+        f"✅ Match Result:\n"
+        f"{match['team1']} vs {match['team2']}\n"
+        f"Time: {match['time']}\n"
+        f"Type: {match_type}\n"
+        f"Final Score: {result_text}\n\n"
+    )
+    
+    # Show user prediction and points if available
+    if match_id in predictions:
+        pred = predictions[match_id]
+        pred_text = f"{pred['home_goals']}-{pred['away_goals']}"
+        
+        if match.get("is_knockout", False) and "resolution_type" in pred:
+            pred_text += f" ({pred['resolution_type']})"
+        
+        # Calculate points earned
+        points = calculate_score(pred, result)
+        
+        response += (
+            f"🔮 Your prediction: {pred_text}\n"
+            f"🏆 Points earned: {points}\n"
+        )
+    
+    # Get back to matches list
+    keyboard = get_enhanced_matches_keyboard(matches, predictions)
     await callback.message.edit_text(response, reply_markup=keyboard)
 
 @router.message(Command("leaderboard"))

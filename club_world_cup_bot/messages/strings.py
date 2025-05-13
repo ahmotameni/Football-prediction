@@ -14,23 +14,20 @@ Good luck! ⚽🍀
 """
 
 HELP_MESSAGE = """
-Available commands:
+Use the keyboard buttons to navigate the bot:
 
-/start - Start the bot
-/predict - Make predictions for upcoming matches
-/matches - View upcoming matches
-/mypredictions - View your current predictions
-/leaderboard - View the current standings
-/myrank - See your position in the leaderboard
-/help - Show this help message
+⚽ Matches - View all matches and make predictions
+📋 My Predictions - View your current predictions
+🏆 Leaderboard - View the current standings
+🥇 My Rank - See your position in the leaderboard
+❓ Help - Show this help message
 
-Admin commands:
-/admin - Show admin options
-/addmatch - Add a new match
-/setresult - Set match result
-/updateleaderboard - Recalculate all scores
-/exportcsv - Export predictions and scores to CSV
-/exportedfiles - View or download exported files
+The matches interface allows you to:
+• See upcoming matches with ⚽
+• Make predictions by tapping on matches
+• See your predictions marked with 🔮
+• View results for completed matches ✅
+• Check points earned for each prediction
 """
 
 # Prediction messages
@@ -47,6 +44,17 @@ NO_UPCOMING_MATCHES = "There are no upcoming matches at the moment."
 MATCH_ADDED = "Match added successfully! ✅"
 RESULT_SET = "Match result set successfully! ✅"
 
+# Enhanced matches messages
+ENHANCED_MATCHES_HEADER = """⚽ All Matches:
+
+Legend:
+⚽ - Open for prediction
+🔮 - You have predicted
+🔒 - Locked (no longer accepting predictions)
+✅ - Result available
+"""
+NO_MATCH_RESULTS = "Match results not available yet."
+
 # Leaderboard messages
 LEADERBOARD_HEADER = "🏆 Current Leaderboard:"
 EMPTY_LEADERBOARD = "No scores available yet."
@@ -54,13 +62,13 @@ RANK_MESSAGE = "Your current rank: #{} with {} points."
 
 # Admin messages
 ADMIN_PANEL = """
-Admin Panel:
+⚙️ Admin Panel
 
-/addmatch - Add a new match
-/setresult - Set match result
-/updateleaderboard - Recalculate all scores
-/exportcsv - Export predictions and scores
-/exportedfiles - View or download exported files
+Use the buttons below to manage the tournament:
+• Add Match
+• Set Result
+• Update Leaderboard
+• Export CSV
 """
 
 ADMIN_ONLY = "This command is only available to admins."
