@@ -83,7 +83,15 @@ def set_match_result(match_id, home_goals, away_goals, resolution_type=None):
     }
     
     if matches[match_id].get('is_knockout', False) and resolution_type:
-        matches[match_id]['result']['resolution_type'] = resolution_type
+        # Parse resolution_type for knockout winner if available
+        if "_" in resolution_type:
+            parts = resolution_type.split("_", 1)  # Split only on first underscore
+            res_type = parts[0]
+            knockout_winner = parts[1]
+            matches[match_id]['result']['resolution_type'] = res_type
+            matches[match_id]['result']['knockout_winner'] = knockout_winner
+        else:
+            matches[match_id]['result']['resolution_type'] = resolution_type
     
     matches[match_id]['locked'] = True
     save_data(MATCHES_FILE, matches)
@@ -108,7 +116,15 @@ def save_prediction(user_id, match_id, home_goals, away_goals, resolution_type=N
     
     matches = get_matches()
     if matches.get(match_id, {}).get('is_knockout', False) and resolution_type:
-        predictions[user_id][match_id]['resolution_type'] = resolution_type
+        # Parse resolution_type for knockout winner if available
+        if "_" in resolution_type:
+            parts = resolution_type.split("_", 1)  # Split only on first underscore
+            res_type = parts[0]
+            knockout_winner = parts[1]
+            predictions[user_id][match_id]['resolution_type'] = res_type
+            predictions[user_id][match_id]['knockout_winner'] = knockout_winner
+        else:
+            predictions[user_id][match_id]['resolution_type'] = resolution_type
     
     save_data(PREDICTIONS_FILE, predictions)
     return True

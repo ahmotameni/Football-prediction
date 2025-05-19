@@ -6,7 +6,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 def get_user_keyboard():
     """Generate a persistent keyboard for regular users."""
     keyboard = [
-        [KeyboardButton(text="⚽ Matches")],
+        [KeyboardButton(text="🏆 Matches")],
         [KeyboardButton(text="📋 My Predictions"), KeyboardButton(text="🏆 Leaderboard")],
         [KeyboardButton(text="🥇 My Rank"), KeyboardButton(text="❓ Help")]
     ]
@@ -20,7 +20,7 @@ def get_user_keyboard():
 def get_admin_keyboard():
     """Generate a persistent keyboard for admin users."""
     keyboard = [
-        [KeyboardButton(text="⚽ Matches")],
+        [KeyboardButton(text="🏆 Matches")],
         [KeyboardButton(text="📋 My Predictions"), KeyboardButton(text="🏆 Leaderboard")],
         [KeyboardButton(text="🥇 My Rank"), KeyboardButton(text="❓ Help")],
         # Admin commands

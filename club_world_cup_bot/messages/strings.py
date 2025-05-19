@@ -48,10 +48,11 @@ RESULT_SET = "Match result set successfully! ✅"
 ENHANCED_MATCHES_HEADER = """⚽ All Matches:
 
 Legend:
-⚽ - Open for prediction
-🔮 - You have predicted
+⏳ - Upcoming match
+✅ - You have predicted
 🔒 - Locked (no longer accepting predictions)
-✅ - Result available
+⚽ - Ongoing match
+🏁 - Match finished
 """
 NO_MATCH_RESULTS = "Match results not available yet."
 

@@ -100,10 +100,11 @@ You can customize the scoring logic in `config/scoring_rules.py`. All calculatio
 
 ## 🎮 User Interface
 The bot features an intuitive interface with emoji status indicators:
-- ⚽ Open matches ready for prediction
-- 🔮 Matches you've already predicted
+- ⏳ Upcoming matches ready for prediction
+- ✅ Matches you've already predicted
 - 🔒 Locked matches (no longer accepting predictions)
-- ✅ Completed matches with results
+- ⚽ Ongoing matches
+- 🏁 Completed matches with results
 
 Users can view all matches, make predictions, and see their scoring results all in one interface.
 

@@ -39,16 +39,34 @@ def get_resolution_type_keyboard(match_id, home_goals, away_goals):
     """Generate a keyboard for selecting resolution type (knockout matches only)."""
     kb = InlineKeyboardBuilder()
     
-    resolution_types = [
-        ("Full Time", "FT"),
-        ("Extra Time", "ET"),
-        ("Penalties", "PEN")
-    ]
-    
-    for text, value in resolution_types:
+    # If it's a tie, show resolution types with team options
+    if int(home_goals) == int(away_goals):
+        # Get the match data to show team names
+        from club_world_cup_bot.services.prediction import get_matches
+        matches = get_matches()
+        match = matches.get(match_id, {})
+        team1 = match.get('team1', 'Home')
+        team2 = match.get('team2', 'Away')
+        
+        # Offer ET or PEN with team selection
+        resolution_teams = [
+            (f"{team1} wins in ET", "ET_1"),
+            (f"{team2} wins in ET", "ET_2"),
+            (f"{team1} wins in PEN", "PEN_1"),
+            (f"{team2} wins in PEN", "PEN_2"),
+        ]
+        
+        for text, value in resolution_teams:
+            kb.button(
+                text=text, 
+                callback_data=f"resolution_{match_id}_{home_goals}_{away_goals}_{value}"
+            )
+    else:
+        # If not a tie, just set as FT automatically in the handler
+        # This is a placeholder as we'll handle non-ties differently
         kb.button(
-            text=text, 
-            callback_data=f"resolution_{match_id}_{home_goals}_{away_goals}_{value}"
+            text="Confirm", 
+            callback_data=f"resolution_{match_id}_{home_goals}_{away_goals}_FT"
         )
     
     return kb.adjust(1).as_markup()
@@ -75,7 +93,7 @@ def get_match_list_keyboard(matches, is_admin=False):
     
     for match_id, match in matches.items():
         prefix = "adminmatch_" if is_admin else "viewmatch_"
-        status = "✅" if "result" in match else "⏳"
+        status = "🏁" if "result" in match else "⏳"
         button_text = f"{status} {match['team1']} vs {match['team2']} - {match['time']}"
         kb.button(text=button_text, callback_data=f"{prefix}{match_id}")
     
@@ -104,7 +122,7 @@ def get_enhanced_matches_keyboard(matches, user_predictions=None):
         # Choose appropriate emoji based on status
         if has_result:
             # Completed match
-            emoji = "✅ "
+            emoji = "🏁 "
             callback = f"viewresult_{match_id}"
         elif is_locked:
             # Locked but no result yet
@@ -112,11 +130,11 @@ def get_enhanced_matches_keyboard(matches, user_predictions=None):
             callback = f"viewmatch_{match_id}"
         elif has_prediction:
             # User has predicted this match
-            emoji = "🔮 "
+            emoji = "✅ "
             callback = f"match_{match_id}"
         else:
             # Open for prediction
-            emoji = "⚽ "
+            emoji = "⏳ "
             callback = f"match_{match_id}"
         
         # Format time to be more readable
@@ -130,9 +148,20 @@ def get_enhanced_matches_keyboard(matches, user_predictions=None):
             pred = user_predictions[match_id]
             pred_text = f"{pred['home_goals']}-{pred['away_goals']}"
             
-            if match.get("is_knockout", False) and "resolution_type" in pred:
-                res_short = {"FT": "FT", "ET": "ET", "PEN": "P"}
-                pred_text += f" ({res_short.get(pred['resolution_type'], pred['resolution_type'])})"
+            if match.get("is_knockout", False):
+                # For knockout matches, add resolution type
+                if int(pred['home_goals']) == int(pred['away_goals']):
+                    # For ties, display winner with resolution type
+                    res_type = pred.get('resolution_type', '')
+                    winner_id = pred.get('knockout_winner', '')
+                    winner_name = match['team1'][:3] if winner_id == '1' else match['team2'][:3]
+                    
+                    res_short = {"ET": "ET", "PEN": "P"}
+                    if res_type in res_short:
+                        pred_text += f" ({winner_name} {res_short.get(res_type)})"
+                else:
+                    # For non-ties, display FT
+                    pred_text += " (FT)"
             
             button_text += f" [{pred_text}]"
         

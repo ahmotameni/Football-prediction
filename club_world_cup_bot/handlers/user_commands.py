@@ -22,7 +22,8 @@ from club_world_cup_bot.keyboards.persistent_keyboard import (
 )
 from club_world_cup_bot.services.prediction import (
     register_user, get_upcoming_matches, get_matches,
-    save_prediction, get_user_predictions, is_admin, is_admin_by_username
+    save_prediction, get_user_predictions, is_admin, is_admin_by_username,
+    load_data, save_data, PREDICTIONS_FILE
 )
 from club_world_cup_bot.services.scoring import get_leaderboard, get_user_rank, calculate_score
 
@@ -156,13 +157,42 @@ async def process_away_goals(callback: CallbackQuery):
     match = matches.get(match_id)
     
     if match.get("is_knockout", False):
-        # For knockout matches, ask for resolution type
-        keyboard = get_resolution_type_keyboard(match_id, home_goals, away_goals)
-        await callback.message.edit_text(
-            f"Selected {home_goals}-{away_goals}.\n"
-            f"How will the match be decided?",
-            reply_markup=keyboard
-        )
+        home_goals_int = int(home_goals)
+        away_goals_int = int(away_goals)
+        
+        if home_goals_int == away_goals_int:
+            # For ties in knockout matches, ask for resolution type and winner
+            keyboard = get_resolution_type_keyboard(match_id, home_goals, away_goals)
+            await callback.message.edit_text(
+                f"Selected {home_goals}-{away_goals} (tie after 90 minutes).\n"
+                f"How will the match be decided and who will win?",
+                reply_markup=keyboard
+            )
+        else:
+            # For non-ties in knockout matches, set resolution type as FT automatically
+            user_id = str(callback.from_user.id)
+            # Winner is determined by the score (1 for home, 2 for away)
+            winner = "1" if home_goals_int > away_goals_int else "2"
+            
+            save_prediction(
+                user_id, match_id, 
+                int(home_goals), int(away_goals), 
+                f"FT_{winner}"  # Store as FT_1 or FT_2
+            )
+            
+            # Show confirmation and match list
+            user_predictions = get_user_predictions(user_id)
+            keyboard = get_enhanced_matches_keyboard(matches, user_predictions)
+            
+            # Determine winner name
+            winner_name = match['team1'] if home_goals_int > away_goals_int else match['team2']
+            
+            await callback.message.edit_text(
+                f"✅ Your prediction for {match['team1']} vs {match['team2']} "
+                f"is {home_goals}-{away_goals} ({winner_name} wins in Full Time).\n\n"
+                f"All matches:",
+                reply_markup=keyboard
+            )
     else:
         # For group stage matches, save the prediction
         user_id = str(callback.from_user.id)
@@ -185,23 +215,71 @@ async def process_resolution_type(callback: CallbackQuery):
     """Handle resolution type selection for knockout matches."""
     await callback.answer()
     
-    _, match_id, home_goals, away_goals, resolution_type = callback.data.split("_")
+    # Split callback data safely
+    parts = callback.data.split("_")
+    # First 4 parts: resolution, match_id, home_goals, away_goals
+    # Everything else will be part of resolution_data
+    if len(parts) < 5:
+        await callback.message.edit_text("Invalid callback data")
+        return
+    
+    match_id = parts[1]
+    home_goals = parts[2]
+    away_goals = parts[3]
+    # Join remaining parts back together with underscores for full resolution_data
+    resolution_data = "_".join(parts[4:])
     
     user_id = str(callback.from_user.id)
     matches = get_matches()
     match = matches.get(match_id)
     
-    save_prediction(
-        user_id, match_id, 
-        int(home_goals), int(away_goals), 
-        resolution_type
-    )
+    # Parse resolution type and winner from resolution_data
+    if "_" in resolution_data:
+        resolution_type, knockout_winner = resolution_data.split("_", 1)  # Split only on first underscore
+    else:
+        resolution_type = resolution_data
+        knockout_winner = None
     
-    resolution_text = {
-        "FT": "Full Time",
-        "ET": "Extra Time",
-        "PEN": "Penalties"
-    }.get(resolution_type, resolution_type)
+    # Save the prediction
+    prediction_data = {
+        'home_goals': int(home_goals),
+        'away_goals': int(away_goals),
+        'resolution_type': resolution_type
+    }
+    
+    # Add knockout winner if available
+    if knockout_winner:
+        prediction_data['knockout_winner'] = knockout_winner
+    
+    # Save prediction with all data
+    predictions = load_data(PREDICTIONS_FILE)
+    if user_id not in predictions:
+        predictions[user_id] = {}
+    
+    predictions[user_id][match_id] = prediction_data
+    save_data(PREDICTIONS_FILE, predictions)
+    
+    # Format resolution text for display
+    resolution_text = resolution_type
+    winner_name = None
+    
+    if knockout_winner == "1":
+        winner_name = match['team1']
+    elif knockout_winner == "2":
+        winner_name = match['team2']
+    
+    if resolution_type == "ET" and winner_name:
+        resolution_text = f"{winner_name} wins in Extra Time"
+    elif resolution_type == "PEN" and winner_name:
+        resolution_text = f"{winner_name} wins in Penalties"
+    elif resolution_type == "FT" and winner_name:
+        resolution_text = f"{winner_name} wins in Full Time"
+    else:
+        resolution_text = {
+            "FT": "Full Time",
+            "ET": "Extra Time",
+            "PEN": "Penalties"
+        }.get(resolution_type, resolution_type)
     
     # After saving, show the enhanced matches list again
     user_predictions = get_user_predictions(user_id)
@@ -265,8 +343,23 @@ async def process_view_match(callback: CallbackQuery):
         result = match["result"]
         result_text = f"{result['home_goals']}-{result['away_goals']}"
         
+        # Format result text for knockout matches
         if match.get("is_knockout", False) and "resolution_type" in result:
-            result_text += f" ({result['resolution_type']})"
+            resolution_type = result["resolution_type"]
+            
+            # For ties with winner info (ET/PEN)
+            if int(result['home_goals']) == int(result['away_goals']):
+                knockout_winner = result.get("knockout_winner")
+                if knockout_winner:
+                    winner_name = match['team1'] if knockout_winner == "1" else match['team2']
+                    resolution_full = {
+                        "ET": f"{winner_name} wins in Extra Time",
+                        "PEN": f"{winner_name} wins in Penalties"
+                    }.get(resolution_type, resolution_type)
+                    result_text += f" ({resolution_full})"
+            else:
+                # For non-ties
+                result_text += " (Full Time)"
         
         response += f"Result: {result_text}\n"
     
@@ -278,8 +371,23 @@ async def process_view_match(callback: CallbackQuery):
         pred = predictions[match_id]
         pred_text = f"{pred['home_goals']}-{pred['away_goals']}"
         
+        # Format prediction text for knockout matches
         if match.get("is_knockout", False) and "resolution_type" in pred:
-            pred_text += f" ({pred['resolution_type']})"
+            resolution_type = pred["resolution_type"]
+            
+            # For ties with winner info (ET/PEN)
+            if int(pred['home_goals']) == int(pred['away_goals']):
+                knockout_winner = pred.get("knockout_winner")
+                if knockout_winner:
+                    winner_name = match['team1'] if knockout_winner == "1" else match['team2']
+                    resolution_full = {
+                        "ET": f"{winner_name} wins in Extra Time",
+                        "PEN": f"{winner_name} wins in Penalties"
+                    }.get(resolution_type, resolution_type)
+                    pred_text += f" ({resolution_full})"
+            else:
+                # For non-ties
+                pred_text += " (Full Time)"
         
         response += f"\n🔮 Your prediction: {pred_text}"
     
@@ -308,8 +416,23 @@ async def process_view_result(callback: CallbackQuery):
     result = match["result"]
     result_text = f"{result['home_goals']}-{result['away_goals']}"
     
+    # Format result text for knockout matches
     if match.get("is_knockout", False) and "resolution_type" in result:
-        result_text += f" ({result['resolution_type']})"
+        resolution_type = result["resolution_type"]
+        
+        # For ties with winner info (ET/PEN)
+        if int(result['home_goals']) == int(result['away_goals']):
+            knockout_winner = result.get("knockout_winner")
+            if knockout_winner:
+                winner_name = match['team1'] if knockout_winner == "1" else match['team2']
+                resolution_full = {
+                    "ET": f"{winner_name} wins in Extra Time",
+                    "PEN": f"{winner_name} wins in Penalties"
+                }.get(resolution_type, resolution_type)
+                result_text += f" ({resolution_full})"
+        else:
+            # For non-ties
+            result_text += " (Full Time)"
     
     response = (
         f"✅ Match Result:\n"
@@ -324,8 +447,23 @@ async def process_view_result(callback: CallbackQuery):
         pred = predictions[match_id]
         pred_text = f"{pred['home_goals']}-{pred['away_goals']}"
         
+        # Format prediction text for knockout matches
         if match.get("is_knockout", False) and "resolution_type" in pred:
-            pred_text += f" ({pred['resolution_type']})"
+            resolution_type = pred["resolution_type"]
+            
+            # For ties with winner info (ET/PEN)
+            if int(pred['home_goals']) == int(pred['away_goals']):
+                knockout_winner = pred.get("knockout_winner")
+                if knockout_winner:
+                    winner_name = match['team1'] if knockout_winner == "1" else match['team2']
+                    resolution_full = {
+                        "ET": f"{winner_name} wins in Extra Time",
+                        "PEN": f"{winner_name} wins in Penalties"
+                    }.get(resolution_type, resolution_type)
+                    pred_text += f" ({resolution_full})"
+            else:
+                # For non-ties
+                pred_text += " (Full Time)"
         
         # Calculate points earned
         points = calculate_score(pred, result)

@@ -25,11 +25,11 @@ def calculate_score(prediction, result):
     pred_winner = 1 if pred_home > pred_away else (2 if pred_home < pred_away else 0)
     result_winner = 1 if result_home > result_away else (2 if result_home < result_away else 0)
     
-    # Check if prediction is completely wrong
+    # Check if prediction is completely wrong for 90 minutes result
     if pred_winner != result_winner:
         return SCORING_RULES["WRONG_PREDICTION"]
     
-    # Correct winner
+    # Correct winner for 90 minutes
     score += SCORING_RULES["CORRECT_WINNER"]
     
     # Correct goal difference
@@ -42,9 +42,16 @@ def calculate_score(prediction, result):
     if pred_home == result_home and pred_away == result_away:
         score += SCORING_RULES["EXACT_SCORE"]
     
-    # For knockout matches, check resolution type
+    # For knockout matches, check resolution type regardless of tie/non-tie
     if 'resolution_type' in result and 'resolution_type' in prediction:
-        if prediction['resolution_type'] == result['resolution_type']:
+        # For ties in 90 minutes
+        if result_winner == 0 and pred_winner == 0:
+            # Check both resolution type and knockout winner
+            if (prediction['resolution_type'] == result['resolution_type'] and
+                prediction.get('knockout_winner') == result.get('knockout_winner')):
+                score += SCORING_RULES["CORRECT_RESOLUTION_TYPE"]
+        # For non-tie matches, just check if resolution type is correct (should be FT)
+        elif prediction['resolution_type'] == result['resolution_type']:
             score += SCORING_RULES["CORRECT_RESOLUTION_TYPE"]
     
     return score

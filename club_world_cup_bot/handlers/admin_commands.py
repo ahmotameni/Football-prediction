@@ -47,6 +47,7 @@ class SetResultForm(StatesGroup):
     home_goals = State()
     away_goals = State()
     resolution_type = State()
+    knockout_winner = State()
 
 class ExportedFilesForm(StatesGroup):
     """States for viewing exported files."""
@@ -295,18 +296,35 @@ async def process_result_away_goals(message: Message, state: FSMContext):
         
         data = await state.get_data()
         match_id = data["match_id"]
+        home_goals = data["home_goals"]
         matches = get_matches()
         match = matches.get(match_id)
         
         if match.get("is_knockout", False):
-            await state.set_state(SetResultForm.resolution_type)
-            await message.answer(
-                "How was the match decided? Enter one of: FT (Full Time), "
-                "ET (Extra Time), PEN (Penalties):"
-            )
+            # For knockout matches check if it's a tie
+            if home_goals == away_goals:
+                # If it's a tie, we need both resolution type and winner
+                await state.set_state(SetResultForm.resolution_type)
+                await message.answer(
+                    "Match ended in a tie. How was it decided? Enter one of: "
+                    "ET (Extra Time), PEN (Penalties):"
+                )
+            else:
+                # If not a tie, set as FT with appropriate winner
+                winner = "1" if home_goals > away_goals else "2"
+                resolution_type = f"FT_{winner}"
+                set_match_result(match_id, home_goals, away_goals, resolution_type)
+                await state.clear()
+                
+                winner_name = match['team1'] if winner == "1" else match['team2']
+                await message.answer(
+                    f"{RESULT_SET}\n\n"
+                    f"Match: {match['team1']} vs {match['team2']}\n"
+                    f"Result: {home_goals}-{away_goals} ({winner_name} wins in Full Time)\n\n"
+                    f"{LEADERBOARD_UPDATED}"
+                )
         else:
             # For group stage matches, set the result immediately
-            home_goals = data["home_goals"]
             set_match_result(match_id, home_goals, away_goals)
             await state.clear()
             
@@ -324,34 +342,61 @@ async def process_result_resolution_type(message: Message, state: FSMContext):
     """Handle resolution type input for result."""
     resolution_type = message.text.upper()
     
-    if resolution_type not in ("FT", "ET", "PEN"):
+    if resolution_type not in ("ET", "PEN"):
         await message.answer(
-            "Invalid resolution type. Please enter one of: "
-            "FT (Full Time), ET (Extra Time), PEN (Penalties):"
+            "Invalid resolution type for tie. Please enter one of: "
+            "ET (Extra Time), PEN (Penalties):"
         )
+        return
+    
+    await state.update_data(resolution_type=resolution_type)
+    await state.set_state(SetResultForm.knockout_winner)
+    
+    data = await state.get_data()
+    match_id = data["match_id"]
+    matches = get_matches()
+    match = matches.get(match_id)
+    
+    await message.answer(
+        f"Which team won after the tie?\n"
+        f"1. {match['team1']}\n"
+        f"2. {match['team2']}\n\n"
+        f"Enter 1 or 2:"
+    )
+
+@router.message(SetResultForm.knockout_winner)
+async def process_knockout_winner(message: Message, state: FSMContext):
+    """Handle knockout winner selection."""
+    winner = message.text.strip()
+    
+    if winner not in ("1", "2"):
+        await message.answer("Please enter 1 or 2 to select the winner:")
         return
     
     data = await state.get_data()
     match_id = data["match_id"]
     home_goals = data["home_goals"]
     away_goals = data["away_goals"]
+    resolution_type = data["resolution_type"]
     
     matches = get_matches()
     match = matches.get(match_id)
     
-    set_match_result(match_id, home_goals, away_goals, resolution_type)
+    # Combine resolution type and winner - handling more complex formats if needed
+    full_resolution = f"{resolution_type}_{winner}"
+    
+    # Set the match result
+    set_match_result(match_id, home_goals, away_goals, full_resolution)
     await state.clear()
     
-    resolution_text = {
-        "FT": "Full Time",
-        "ET": "Extra Time",
-        "PEN": "Penalties"
-    }[resolution_type]
+    # Get team name for display
+    winner_name = match['team1'] if winner == "1" else match['team2']
+    resolution_text = "Extra Time" if resolution_type == "ET" else "Penalties"
     
     await message.answer(
         f"{RESULT_SET}\n\n"
         f"Match: {match['team1']} vs {match['team2']}\n"
-        f"Result: {home_goals}-{away_goals} ({resolution_text})\n\n"
+        f"Result: {home_goals}-{away_goals} ({winner_name} wins in {resolution_text})\n\n"
         f"{LEADERBOARD_UPDATED}"
     )
 
