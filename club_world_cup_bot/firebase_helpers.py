@@ -188,16 +188,7 @@ def set_current_stage(stage):
         print(f"Error setting current stage: {e}")
         return False
 
-def save_export(export_id, export_data):
-    """Save exported CSV data to Firebase."""
-    try:
-        database = get_database()
-        exports_ref = database.child('exports')
-        exports_ref.child(str(export_id)).set(export_data)
-        return True
-    except Exception as e:
-        print(f"Error saving export {export_id}: {e}")
-        return False
+
 
 
 

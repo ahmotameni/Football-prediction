@@ -90,13 +90,27 @@ async def button_export_csv(message: Message):
         await message.answer(ADMIN_ONLY)
         return
     
-    # Save to Firebase
-    success, filename = export_predictions_csv()
-    
-    if success:
-        await message.answer(f"✅ {CSV_EXPORTED}\n📁 File saved to Firebase: {filename}")
-    else:
-        await message.answer("❌ Failed to export data to Firebase. Please try again.")
+    try:
+        # Generate CSV
+        csv_data, filename = export_predictions_csv()
+        
+        # Create BytesIO object for file sending
+        from aiogram.types import BufferedInputFile
+        
+        # Convert CSV string to bytes
+        csv_bytes = csv_data.encode('utf-8')
+        
+        # Create input file for Telegram
+        input_file = BufferedInputFile(csv_bytes, filename)
+        
+        # Send the file
+        await message.answer_document(
+            document=input_file,
+            caption=f"✅ {CSV_EXPORTED}\n📊 Generated: {filename}"
+        )
+        
+    except Exception as e:
+        await message.answer(f"❌ Failed to export CSV: {str(e)}")
 
 @router.message(F.text == "📁 View Exports")
 async def button_exported_files(message: Message, state: FSMContext):
@@ -175,13 +189,27 @@ async def process_export_csv(callback: CallbackQuery):
         await callback.message.edit_text(ADMIN_ONLY)
         return
     
-    # Save to Firebase
-    success, filename = export_predictions_csv()
-    
-    if success:
-        await callback.message.edit_text(f"✅ {CSV_EXPORTED}\n📁 File saved to Firebase: {filename}")
-    else:
-        await callback.message.edit_text("❌ Failed to export data to Firebase. Please try again.")
+    try:
+        # Generate CSV
+        csv_data, filename = export_predictions_csv()
+        
+        # Create BytesIO object for file sending
+        from aiogram.types import BufferedInputFile
+        
+        # Convert CSV string to bytes
+        csv_bytes = csv_data.encode('utf-8')
+        
+        # Create input file for Telegram
+        input_file = BufferedInputFile(csv_bytes, filename)
+        
+        # Send the file
+        await callback.message.answer_document(
+            document=input_file,
+            caption=f"✅ {CSV_EXPORTED}\n📊 Generated: {filename}"
+        )
+        
+    except Exception as e:
+        await callback.message.edit_text(f"❌ Failed to export CSV: {str(e)}")
 
 @router.message(AddMatchForm.team1)
 async def process_team1(message: Message, state: FSMContext):

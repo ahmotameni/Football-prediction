@@ -6,8 +6,7 @@ import io
 from datetime import datetime
 
 from ..firebase_helpers import (
-    get_all_users, get_all_matches, get_all_predictions,
-    save_export
+    get_all_users, get_all_matches, get_all_predictions
 )
 
 def generate_export_filename():
@@ -16,7 +15,7 @@ def generate_export_filename():
     return f"cwc_predictions_{timestamp}.csv"
 
 def export_predictions_csv():
-    """Export all predictions and scores to a CSV file and save to Firebase."""
+    """Export all predictions and scores to a CSV file for immediate download."""
     predictions = get_all_predictions()
     matches = get_all_matches()
     users = get_all_users()
@@ -63,23 +62,11 @@ def export_predictions_csv():
         
         writer.writerow(row)
     
-    # Get CSV data
+    # Get CSV data and create filename
     csv_data = output.getvalue()
     output.close()
     
-    # Create export record for Firebase
     timestamp = datetime.now()
-    export_id = timestamp.strftime("%Y%m%d_%H%M%S")
-    filename = f"cwc_predictions_{export_id}.csv"
+    filename = f"cwc_predictions_{timestamp.strftime('%Y%m%d_%H%M%S')}.csv"
     
-    export_data = {
-        'filename': filename,
-        'csv_data': csv_data,
-        'created_at': timestamp.isoformat()
-    }
-    
-    # Save to Firebase
-    if save_export(export_id, export_data):
-        return True, filename
-    else:
-        return False, None 
+    return csv_data, filename 
