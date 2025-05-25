@@ -145,25 +145,34 @@ def get_enhanced_matches_keyboard(matches, user_predictions=None):
         
         # Add prediction info if user has predicted
         if has_prediction:
-            pred = user_predictions[match_id]
-            pred_text = f"{pred['home_goals']}-{pred['away_goals']}"
-            
-            if match.get("is_knockout", False):
-                # For knockout matches, add resolution type
-                if int(pred['home_goals']) == int(pred['away_goals']):
-                    # For ties, display winner with resolution type
-                    res_type = pred.get('resolution_type', '')
-                    winner_id = pred.get('knockout_winner', '')
-                    winner_name = match['team1'][:3] if winner_id == '1' else match['team2'][:3]
+            try:
+                pred = user_predictions[match_id]
+                pred_text = f"{pred.get('home_goals', '?')}-{pred.get('away_goals', '?')}"
+                
+                if match.get("is_knockout", False):
+                    # For knockout matches, add resolution type
+                    home_goals = pred.get('home_goals', 0)
+                    away_goals = pred.get('away_goals', 0)
                     
-                    res_short = {"ET": "ET", "PEN": "P"}
-                    if res_type in res_short:
-                        pred_text += f" ({winner_name} {res_short.get(res_type)})"
-                else:
-                    # For non-ties, display FT
-                    pred_text += " (FT)"
-            
-            button_text += f" [{pred_text}]"
+                    if int(home_goals) == int(away_goals):
+                        # For ties, display winner with resolution type
+                        res_type = pred.get('resolution_type', '')
+                        winner_id = pred.get('knockout_winner', '')
+                        
+                        if winner_id and res_type:
+                            winner_name = match['team1'][:3] if winner_id == '1' else match['team2'][:3]
+                            res_short = {"ET": "ET", "PEN": "P"}
+                            if res_type in res_short:
+                                pred_text += f" ({winner_name} {res_short.get(res_type)})"
+                    else:
+                        # For non-ties, display FT
+                        pred_text += " (FT)"
+                
+                button_text += f" [{pred_text}]"
+            except (KeyError, ValueError, TypeError) as e:
+                # If there's an issue with prediction data, just show the basic button
+                print(f"Warning: Issue with prediction data for match {match_id}: {e}")
+                pass
         
         kb.button(text=button_text, callback_data=callback)
     

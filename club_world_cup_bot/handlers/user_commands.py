@@ -250,7 +250,12 @@ async def process_resolution_type(callback: CallbackQuery):
     if knockout_winner:
         prediction_data['knockout_winner'] = knockout_winner
     
-    # Save prediction with all data
+    # Save prediction with all data - construct the resolution string
+    if knockout_winner:
+        resolution_string = f"{resolution_type}_{knockout_winner}"
+    else:
+        resolution_string = resolution_type
+    
     save_prediction(user_id, match_id, int(home_goals), int(away_goals), resolution_string)
     
     # Format resolution text for display
