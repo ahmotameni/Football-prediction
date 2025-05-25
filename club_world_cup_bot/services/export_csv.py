@@ -5,7 +5,7 @@ import csv
 import io
 from datetime import datetime
 
-from firebase_helpers import get_all_users, get_all_matches, get_all_predictions
+from ..firebase_helpers import get_all_users, get_all_matches, get_all_predictions
 
 def generate_export_filename():
     """Generate a filename for the export with timestamp."""

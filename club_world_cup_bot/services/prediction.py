@@ -2,7 +2,7 @@
 Service for handling match predictions using Firebase Realtime Database.
 """
 from datetime import datetime
-from firebase_helpers import (
+from ..firebase_helpers import (
     get_all_users, save_user, get_user,
     get_all_matches, save_match, add_match, update_match,
     get_all_predictions, get_predictions, save_prediction
@@ -27,7 +27,7 @@ def get_upcoming_matches():
 
 def add_match(team1, team2, time, is_knockout=False):
     """Add a new match."""
-    from firebase_helpers import add_match as firebase_add_match
+    from ..firebase_helpers import add_match as firebase_add_match
     
     match_data = {
         'team1': team1,
@@ -77,7 +77,7 @@ def set_match_result(match_id, home_goals, away_goals, resolution_type=None):
 
 def save_prediction(user_id, match_id, home_goals, away_goals, resolution_type=None):
     """Save a user's prediction for a match."""
-    from firebase_helpers import save_prediction as firebase_save_prediction
+    from ..firebase_helpers import save_prediction as firebase_save_prediction
     
     prediction_data = {
         'home_goals': home_goals,

@@ -5,7 +5,7 @@ from datetime import datetime
 from club_world_cup_bot.config.scoring_rules import SCORING_RULES
 
 # Import Firebase helpers
-from firebase_helpers import (
+from ..firebase_helpers import (
     get_all_users, save_user,
     get_all_matches,
     get_all_predictions

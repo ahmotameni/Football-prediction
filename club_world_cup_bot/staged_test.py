@@ -20,7 +20,7 @@ import datetime
 from datetime import timedelta
 
 # Import Firebase helpers
-from firebase_helpers import (
+from .firebase_helpers import (
     get_all_users, save_user,
     get_all_matches, save_match,
     get_all_predictions, save_prediction,

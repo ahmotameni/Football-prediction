@@ -5,7 +5,7 @@ This module provides high-level functions for interacting with Firebase Realtime
 abstracting the database operations from the application logic.
 """
 from firebase_admin import db
-from firebase_init import get_database
+from .firebase_init import get_database
 
 def get_all_users():
     """Get all users from Firebase."""
