@@ -52,7 +52,9 @@ class SetResultForm(StatesGroup):
     resolution_type = State()
     knockout_winner = State()
 
-
+class WhitelistUserForm(StatesGroup):
+    """States for whitelisting a user."""
+    username = State()
 
 # Removed ExportedFilesForm as it's no longer needed with Firebase
 
@@ -119,6 +121,16 @@ async def button_export_csv(message: Message):
 async def button_exported_files(message: Message, state: FSMContext):
     """Handle the View Exports button."""
     await message.answer("📁 Export functionality simplified.\n\nUse 'Export CSV' to save exports to Firebase.")
+
+@router.message(F.text == "👥 Whitelist User")
+async def button_whitelist_user(message: Message, state: FSMContext):
+    """Handle the Whitelist User button."""
+    if not check_admin_permissions(message.from_user):
+        await message.answer(ADMIN_ONLY)
+        return
+    
+    await state.set_state(WhitelistUserForm.username)
+    await message.answer("Enter the username to whitelist (with or without @):")
 
 # Original command handlers
 @router.message(Command("admin"))
@@ -213,6 +225,45 @@ async def process_export_csv(callback: CallbackQuery):
         
     except Exception as e:
         await callback.message.edit_text(f"❌ Failed to export CSV: {str(e)}")
+
+@router.callback_query(F.data == "admin_whitelist")
+async def process_whitelist_user(callback: CallbackQuery, state: FSMContext):
+    """Handle whitelist user button click."""
+    await callback.answer()
+    
+    if not check_admin_permissions(callback.from_user):
+        await callback.message.edit_text(ADMIN_ONLY)
+        return
+    
+    await state.set_state(WhitelistUserForm.username)
+    await callback.message.edit_text("Enter the username to whitelist (with or without @):")
+
+@router.message(WhitelistUserForm.username)
+async def process_whitelist_username(message: Message, state: FSMContext):
+    """Handle username input for whitelisting."""
+    username_input = message.text.strip()
+    
+    # Remove @ if present
+    if username_input.startswith('@'):
+        username = username_input[1:]
+    else:
+        username = username_input
+    
+    # Check if user is already whitelisted
+    if is_whitelisted_by_username(username):
+        await message.answer(USER_ALREADY_WHITELISTED.format(f"@{username}"))
+        await state.clear()
+        return
+    
+    # Try to whitelist the user
+    success = set_whitelisted_by_username(username, True)
+    
+    if success:
+        await message.answer(USER_WHITELISTED_SUCCESS.format(f"@{username}"))
+    else:
+        await message.answer(USER_NOT_FOUND.format(f"@{username}"))
+    
+    await state.clear()
 
 @router.message(AddMatchForm.team1)
 async def process_team1(message: Message, state: FSMContext):

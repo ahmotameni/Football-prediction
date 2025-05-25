@@ -79,7 +79,8 @@ def get_admin_keyboard():
         ("Add Match", "admin_addmatch"),
         ("Set Result", "admin_setresult"),
         ("Update Leaderboard", "admin_updateleaderboard"),
-        ("Export CSV", "admin_exportcsv")
+        ("Export CSV", "admin_exportcsv"),
+        ("Whitelist User", "admin_whitelist")
     ]
     
     for text, callback_data in buttons:
