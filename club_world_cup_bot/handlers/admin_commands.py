@@ -23,10 +23,7 @@ from club_world_cup_bot.services.prediction import (
     is_admin, is_admin_by_username, add_match, set_match_result, get_matches
 )
 from club_world_cup_bot.services.scoring import update_leaderboard
-from club_world_cup_bot.services.export_csv import (
-    export_predictions_csv, export_predictions_csv_to_firebase, 
-    get_exports_list, get_export_csv_data
-)
+from club_world_cup_bot.services.export_csv import export_predictions_csv
 
 # Optional API Football integration
 try:
@@ -52,9 +49,7 @@ class SetResultForm(StatesGroup):
     resolution_type = State()
     knockout_winner = State()
 
-class ExportManagementForm(StatesGroup):
-    """States for export management."""
-    viewing_exports = State()
+
 
 # Removed ExportedFilesForm as it's no longer needed with Firebase
 
@@ -95,56 +90,18 @@ async def button_export_csv(message: Message):
         await message.answer(ADMIN_ONLY)
         return
     
-    # Save to Firebase and also send as document
-    export_id, export_data = export_predictions_csv_to_firebase()
+    # Save to Firebase
+    success, filename = export_predictions_csv()
     
-    if export_id:
-        # Also send as document for immediate download
-        csv_data = export_data['csv_data']
-        filename = export_data['filename']
-        
-        from io import BytesIO
-        document = BytesIO(csv_data.encode('utf-8'))
-        await message.answer_document(
-            document=document,
-            filename=filename,
-            caption=f"✅ {CSV_EXPORTED}\n📱 Export saved to Firebase with ID: {export_id}\n👥 {export_data['total_users']} users, ⚽ {export_data['total_matches']} matches, 🔮 {export_data['total_predictions']} predictions"
-        )
+    if success:
+        await message.answer(f"✅ {CSV_EXPORTED}\n📁 File saved to Firebase: {filename}")
     else:
         await message.answer("❌ Failed to export data to Firebase. Please try again.")
 
 @router.message(F.text == "📁 View Exports")
 async def button_exported_files(message: Message, state: FSMContext):
     """Handle the View Exports button."""
-    if not check_admin_permissions(message.from_user):
-        await message.answer(ADMIN_ONLY)
-        return
-    
-    exports = get_exports_list()
-    
-    if not exports:
-        await message.answer("📁 No exports found in Firebase.\n\nUse 'Export CSV' to create your first export.")
-        return
-    
-    response = "📁 **Stored Exports in Firebase:**\n\n"
-    
-    for i, export in enumerate(exports[:10], 1):  # Show last 10 exports
-        created_date = export['created_at'][:10]  # YYYY-MM-DD
-        created_time = export['created_at'][11:19]  # HH:MM:SS
-        
-        response += (
-            f"**{i}. {export['filename']}**\n"
-            f"📅 {created_date} ⏰ {created_time}\n"
-            f"👥 {export['total_users']} users | ⚽ {export['total_matches']} matches | 🔮 {export['total_predictions']} predictions\n"
-            f"🆔 ID: `{export['id']}`\n\n"
-        )
-    
-    if len(exports) > 10:
-        response += f"... and {len(exports) - 10} more exports\n\n"
-    
-    response += "💡 Use `/downloadexport <ID>` to download a specific export."
-    
-    await message.answer(response, parse_mode="Markdown")
+    await message.answer("📁 Export functionality simplified.\n\nUse 'Export CSV' to save exports to Firebase.")
 
 # Original command handlers
 @router.message(Command("admin"))
@@ -218,21 +175,11 @@ async def process_export_csv(callback: CallbackQuery):
         await callback.message.edit_text(ADMIN_ONLY)
         return
     
-    # Save to Firebase and also send as document
-    export_id, export_data = export_predictions_csv_to_firebase()
+    # Save to Firebase
+    success, filename = export_predictions_csv()
     
-    if export_id:
-        # Also send as document for immediate download
-        csv_data = export_data['csv_data']
-        filename = export_data['filename']
-        
-        from io import BytesIO
-        document = BytesIO(csv_data.encode('utf-8'))
-        await callback.message.answer_document(
-            document=document,
-            filename=filename,
-            caption=f"✅ {CSV_EXPORTED}\n📱 Export saved to Firebase with ID: {export_id}\n👥 {export_data['total_users']} users, ⚽ {export_data['total_matches']} matches, 🔮 {export_data['total_predictions']} predictions"
-        )
+    if success:
+        await callback.message.edit_text(f"✅ {CSV_EXPORTED}\n📁 File saved to Firebase: {filename}")
     else:
         await callback.message.edit_text("❌ Failed to export data to Firebase. Please try again.")
 
@@ -450,31 +397,4 @@ async def process_knockout_winner(message: Message, state: FSMContext):
 @router.message(Command("exportedfiles"))
 async def cmd_exported_files(message: Message, state: FSMContext):
     """Handle the /exportedfiles command."""
-    await button_exported_files(message, state)
-
-@router.message(Command("downloadexport"))
-async def cmd_download_export(message: Message):
-    """Handle the /downloadexport <ID> command."""
-    if not check_admin_permissions(message.from_user):
-        await message.answer(ADMIN_ONLY)
-        return
-    
-    # Extract export ID from command
-    parts = message.text.split()
-    if len(parts) != 2:
-        await message.answer("❌ Usage: `/downloadexport <export_id>`\n\nExample: `/downloadexport 20251225_143052`")
-        return
-    
-    export_id = parts[1]
-    csv_data, filename = get_export_csv_data(export_id)
-    
-    if csv_data:
-        from io import BytesIO
-        document = BytesIO(csv_data.encode('utf-8'))
-        await message.answer_document(
-            document=document,
-            filename=filename,
-            caption=f"📁 Downloaded export: {export_id}"
-        )
-    else:
-        await message.answer(f"❌ Export not found: {export_id}\n\nUse `/exportedfiles` to see available exports.") 
+    await button_exported_files(message, state) 

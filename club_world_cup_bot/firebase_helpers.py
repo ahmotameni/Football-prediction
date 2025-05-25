@@ -199,48 +199,7 @@ def save_export(export_id, export_data):
         print(f"Error saving export {export_id}: {e}")
         return False
 
-def get_all_exports():
-    """Get all exports from Firebase."""
-    try:
-        database = get_database()
-        exports_ref = database.child('exports')
-        exports = exports_ref.get()
-        
-        # Ensure we always return a dictionary
-        if exports is None:
-            return {}
-        elif isinstance(exports, list):
-            # Convert list to dictionary if needed
-            return {str(i): export for i, export in enumerate(exports) if export is not None}
-        elif isinstance(exports, dict):
-            return exports
-        else:
-            return {}
-    except Exception as e:
-        print(f"Error getting exports: {e}")
-        return {}
 
-def get_export(export_id):
-    """Get a specific export from Firebase."""
-    try:
-        database = get_database()
-        exports_ref = database.child('exports')
-        export_data = exports_ref.child(str(export_id)).get() or {}
-        return export_data
-    except Exception as e:
-        print(f"Error getting export {export_id}: {e}")
-        return {}
-
-def delete_export(export_id):
-    """Delete an export from Firebase."""
-    try:
-        database = get_database()
-        exports_ref = database.child('exports')
-        exports_ref.child(str(export_id)).delete()
-        return True
-    except Exception as e:
-        print(f"Error deleting export {export_id}: {e}")
-        return False
 
 def clear_all_data():
     """Clear all data from Firebase (for testing purposes)."""
