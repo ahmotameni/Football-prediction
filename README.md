@@ -122,6 +122,7 @@ Firebase Realtime Database structure:
 │       ├── last_name
 │       ├── score
 │       ├── is_admin
+│       ├── whitelisted
 │       └── registered_at
 ├── matches/
 │   └── {match_id}/
@@ -169,6 +170,14 @@ Users can view all matches, make predictions, and see their scoring results all 
 - Set Result – add match results
 - Update Scores – recalculate points
 - Export CSV – export all data
+- Whitelist User – approve users to access the bot
+
+### User Access Control
+The bot implements a whitelisting system where:
+- New users are automatically registered but not whitelisted
+- Only whitelisted users (and admins) can access bot features
+- Admins can whitelist users using `/whitelist @username`
+- Non-whitelisted users see an access restriction message
 
 ---
 

@@ -29,6 +29,7 @@ def create_test_users():
             "last_name": "User",
             "registered_at": datetime.datetime.now().isoformat(),
             "is_admin": True,
+            "whitelisted": True,
             "score": 0
         },
         "987654321": {
@@ -37,6 +38,7 @@ def create_test_users():
             "last_name": "User",
             "registered_at": datetime.datetime.now().isoformat(),
             "is_admin": False,
+            "whitelisted": True,
             "score": 0
         },
         "111222333": {
@@ -45,6 +47,7 @@ def create_test_users():
             "last_name": "Motameni",
             "registered_at": datetime.datetime.now().isoformat(),
             "is_admin": True,
+            "whitelisted": True,
             "score": 0
         }
     }
@@ -57,6 +60,7 @@ def create_test_users():
             "first_name": f"User {i}",
             "registered_at": datetime.datetime.now().isoformat(),
             "is_admin": False,
+            "whitelisted": True,
             "score": 0
         }
     

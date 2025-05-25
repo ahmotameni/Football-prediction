@@ -70,11 +70,29 @@ Use the buttons below to manage the tournament:
 • Set Result
 • Update Leaderboard
 • Export CSV
+• Whitelist User
 """
 
 ADMIN_ONLY = "This command is only available to admins."
 LEADERBOARD_UPDATED = "Leaderboard has been updated! ✅"
 CSV_EXPORTED = "CSV file has been exported! ✅"
+
+# Whitelisting messages
+USER_NOT_WHITELISTED = """
+🚫 Access Restricted
+
+You need to be approved to use this bot. Please contact the admin after paying the entrance fee to get whitelisted.
+
+Once whitelisted, you'll be able to:
+• View and predict matches
+• See leaderboards
+• Access all bot features
+"""
+
+USER_WHITELISTED_SUCCESS = "✅ User {} has been successfully whitelisted!"
+USER_ALREADY_WHITELISTED = "ℹ️ User {} is already whitelisted."
+USER_NOT_FOUND = "❌ User {} not found. They need to start the bot first with /start command."
+WHITELIST_INVALID_FORMAT = "❌ Invalid format. Please use: /whitelist @username"
 
 # Error messages
 GENERAL_ERROR = "An error occurred. Please try again later."

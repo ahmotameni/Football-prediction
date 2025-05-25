@@ -10,7 +10,7 @@ from club_world_cup_bot.messages.strings import (
     WELCOME_MESSAGE, HELP_MESSAGE, PREDICTION_START, NO_MATCHES_TO_PREDICT,
     PREDICTION_SUCCESS, PREDICTION_UPDATED, PREDICTION_LOCKED, NO_PREDICTIONS,
     MATCH_LIST_HEADER, NO_UPCOMING_MATCHES, LEADERBOARD_HEADER, EMPTY_LEADERBOARD, 
-    RANK_MESSAGE, ENHANCED_MATCHES_HEADER, NO_MATCH_RESULTS
+    RANK_MESSAGE, ENHANCED_MATCHES_HEADER, NO_MATCH_RESULTS, USER_NOT_WHITELISTED
 )
 from club_world_cup_bot.keyboards.prediction_keyboard import (
     get_matches_keyboard, get_home_goals_keyboard, 
@@ -22,11 +22,27 @@ from club_world_cup_bot.keyboards.persistent_keyboard import (
 )
 from club_world_cup_bot.services.prediction import (
     register_user, get_upcoming_matches, get_matches,
-    save_prediction, get_user_predictions, is_admin, is_admin_by_username
+    save_prediction, get_user_predictions, is_admin, is_admin_by_username,
+    is_whitelisted, is_whitelisted_by_username
 )
 from club_world_cup_bot.services.scoring import get_leaderboard, get_user_rank, calculate_score
 
 router = Router()
+
+def check_user_access(user):
+    """Check if user has access (is admin or whitelisted)."""
+    user_id = str(user.id)
+    username = user.username
+    
+    # Admins always have access
+    if is_admin(user_id) or (username and is_admin_by_username(username)):
+        return True
+    
+    # Check if user is whitelisted
+    if is_whitelisted(user_id) or (username and is_whitelisted_by_username(username)):
+        return True
+    
+    return False
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
@@ -61,26 +77,41 @@ async def button_help(message: Message):
 @router.message(F.text == "⚽ Matches")
 async def button_matches(message: Message):
     """Handle the Matches button - enhanced version that combines predict and matches."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
     await cmd_enhanced_matches(message)
 
 @router.message(F.text == "📋 My Predictions")
 async def button_my_predictions(message: Message):
     """Handle the My Predictions button."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
     await cmd_my_predictions(message)
 
 @router.message(F.text == "🏆 Leaderboard")
 async def button_leaderboard(message: Message):
     """Handle the Leaderboard button."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
     await cmd_leaderboard(message)
 
 @router.message(F.text == "🥇 My Rank")
 async def button_my_rank(message: Message):
     """Handle the My Rank button."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
     await cmd_my_rank(message)
 
 @router.message(Command("predict"))
 async def cmd_predict(message: Message):
     """Handle the /predict command - now redirects to enhanced matches."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
     await cmd_enhanced_matches(message)
 
 @router.message(Command("enhanced_matches"))
@@ -89,6 +120,10 @@ async def cmd_enhanced_matches(message: Message):
     Enhanced matches command that combines match viewing and prediction.
     Shows matches with their status, user predictions if available, and results.
     """
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
+        
     user_id = str(message.from_user.id)
     matches = get_matches()
     
@@ -108,6 +143,10 @@ async def cmd_enhanced_matches(message: Message):
 async def process_match_selection(callback: CallbackQuery):
     """Handle match selection for prediction."""
     await callback.answer()
+    
+    if not check_user_access(callback.from_user):
+        await callback.message.edit_text(USER_NOT_WHITELISTED)
+        return
     
     match_id = callback.data.split("_")[1]
     keyboard = get_home_goals_keyboard(match_id)
@@ -133,6 +172,10 @@ async def process_home_goals(callback: CallbackQuery):
     """Handle home team goals selection."""
     await callback.answer()
     
+    if not check_user_access(callback.from_user):
+        await callback.message.edit_text(USER_NOT_WHITELISTED)
+        return
+    
     _, match_id, home_goals = callback.data.split("_")
     keyboard = get_away_goals_keyboard(match_id, home_goals)
     
@@ -149,6 +192,10 @@ async def process_home_goals(callback: CallbackQuery):
 async def process_away_goals(callback: CallbackQuery):
     """Handle away team goals selection."""
     await callback.answer()
+    
+    if not check_user_access(callback.from_user):
+        await callback.message.edit_text(USER_NOT_WHITELISTED)
+        return
     
     _, match_id, home_goals, away_goals = callback.data.split("_")
     
@@ -213,6 +260,10 @@ async def process_away_goals(callback: CallbackQuery):
 async def process_resolution_type(callback: CallbackQuery):
     """Handle resolution type selection for knockout matches."""
     await callback.answer()
+    
+    if not check_user_access(callback.from_user):
+        await callback.message.edit_text(USER_NOT_WHITELISTED)
+        return
     
     # Split callback data safely
     parts = callback.data.split("_")
@@ -294,6 +345,10 @@ async def process_resolution_type(callback: CallbackQuery):
 @router.message(Command("mypredictions"))
 async def cmd_my_predictions(message: Message):
     """Handle the /mypredictions command - now using the enhanced match display."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
+        
     user_id = str(message.from_user.id)
     predictions = get_user_predictions(user_id)
     
@@ -312,12 +367,19 @@ async def cmd_my_predictions(message: Message):
 @router.message(Command("matches"))
 async def cmd_matches(message: Message):
     """Handle the /matches command - redirects to enhanced matches."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
     await cmd_enhanced_matches(message)
 
 @router.callback_query(F.data.startswith("viewmatch_"))
 async def process_view_match(callback: CallbackQuery):
     """Handle viewing match details."""
     await callback.answer()
+    
+    if not check_user_access(callback.from_user):
+        await callback.message.edit_text(USER_NOT_WHITELISTED)
+        return
     
     match_id = callback.data.split("_")[1]
     matches = get_matches()
@@ -401,6 +463,10 @@ async def process_view_result(callback: CallbackQuery):
     """Handle viewing match results."""
     await callback.answer()
     
+    if not check_user_access(callback.from_user):
+        await callback.message.edit_text(USER_NOT_WHITELISTED)
+        return
+    
     match_id = callback.data.split("_")[1]
     matches = get_matches()
     match = matches.get(match_id)
@@ -479,6 +545,10 @@ async def process_view_result(callback: CallbackQuery):
 @router.message(Command("leaderboard"))
 async def cmd_leaderboard(message: Message):
     """Handle the /leaderboard command."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
+        
     leaderboard = get_leaderboard()
     
     if not leaderboard:
@@ -499,6 +569,10 @@ async def cmd_leaderboard(message: Message):
 @router.message(Command("myrank"))
 async def cmd_my_rank(message: Message):
     """Handle the /myrank command."""
+    if not check_user_access(message.from_user):
+        await message.answer(USER_NOT_WHITELISTED)
+        return
+        
     user_id = str(message.from_user.id)
     rank, score = get_user_rank(user_id)
     

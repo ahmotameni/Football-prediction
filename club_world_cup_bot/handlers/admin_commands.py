@@ -11,7 +11,9 @@ from datetime import datetime
 
 from club_world_cup_bot.messages.strings import (
     ADMIN_PANEL, ADMIN_ONLY, MATCH_ADDED, 
-    RESULT_SET, LEADERBOARD_UPDATED, CSV_EXPORTED
+    RESULT_SET, LEADERBOARD_UPDATED, CSV_EXPORTED,
+    USER_WHITELISTED_SUCCESS, USER_ALREADY_WHITELISTED, 
+    USER_NOT_FOUND, WHITELIST_INVALID_FORMAT
 )
 from club_world_cup_bot.keyboards.prediction_keyboard import (
     get_admin_keyboard as get_admin_inline_keyboard, get_match_list_keyboard
@@ -20,7 +22,8 @@ from club_world_cup_bot.keyboards.persistent_keyboard import (
     get_admin_keyboard as get_admin_reply_keyboard
 )
 from club_world_cup_bot.services.prediction import (
-    is_admin, is_admin_by_username, add_match, set_match_result, get_matches
+    is_admin, is_admin_by_username, add_match, set_match_result, get_matches,
+    set_whitelisted_by_username, is_whitelisted_by_username
 )
 from club_world_cup_bot.services.scoring import update_leaderboard
 from club_world_cup_bot.services.export_csv import export_predictions_csv
@@ -425,4 +428,39 @@ async def process_knockout_winner(message: Message, state: FSMContext):
 @router.message(Command("exportedfiles"))
 async def cmd_exported_files(message: Message, state: FSMContext):
     """Handle the /exportedfiles command."""
-    await button_exported_files(message, state) 
+    await button_exported_files(message, state)
+
+@router.message(Command("whitelist"))
+async def cmd_whitelist(message: Message):
+    """Handle the /whitelist command to whitelist users by username."""
+    if not check_admin_permissions(message.from_user):
+        await message.answer(ADMIN_ONLY)
+        return
+    
+    # Parse the command to get the username
+    command_parts = message.text.split()
+    
+    if len(command_parts) != 2:
+        await message.answer(WHITELIST_INVALID_FORMAT)
+        return
+    
+    username_input = command_parts[1].strip()
+    
+    # Remove @ if present
+    if username_input.startswith('@'):
+        username = username_input[1:]
+    else:
+        username = username_input
+    
+    # Check if user is already whitelisted
+    if is_whitelisted_by_username(username):
+        await message.answer(USER_ALREADY_WHITELISTED.format(f"@{username}"))
+        return
+    
+    # Try to whitelist the user
+    success = set_whitelisted_by_username(username, True)
+    
+    if success:
+        await message.answer(USER_WHITELISTED_SUCCESS.format(f"@{username}"))
+    else:
+        await message.answer(USER_NOT_FOUND.format(f"@{username}")) 

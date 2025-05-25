@@ -119,6 +119,7 @@ def register_user(user_id, username, first_name, last_name=None):
         'last_name': last_name,
         'registered_at': datetime.now().isoformat(),
         'is_admin': False,  # Default value
+        'whitelisted': False,  # Default value - users start not whitelisted
         'score': 0  # Default score
     }
     
@@ -128,6 +129,25 @@ def is_admin(user_id):
     """Check if a user is an admin by ID."""
     user = get_user(user_id)
     return user.get('is_admin', False)
+
+def is_whitelisted(user_id):
+    """Check if a user is whitelisted by ID."""
+    user = get_user(user_id)
+    return user.get('whitelisted', False)
+
+def is_whitelisted_by_username(username):
+    """Check if a user is whitelisted by username."""
+    if not username:
+        return False
+        
+    users = get_all_users()
+    
+    # Look for a user with matching username
+    for user_data in users.values():
+        if user_data.get('username') == username and user_data.get('whitelisted', False):
+            return True
+    
+    return False
 
 def is_admin_by_username(username):
     """Check if a user is an admin by username."""
@@ -152,6 +172,33 @@ def set_admin(user_id, is_admin_value=True):
         return save_user(user_id, user)
     
     return False
+
+def set_whitelisted(user_id, whitelisted_value=True):
+    """Set a user as whitelisted by ID."""
+    user = get_user(user_id)
+    
+    if user:
+        user['whitelisted'] = whitelisted_value
+        return save_user(user_id, user)
+    
+    return False
+
+def set_whitelisted_by_username(username, whitelisted_value=True):
+    """Set a user as whitelisted by username."""
+    if not username:
+        return False
+        
+    users = get_all_users()
+    found = False
+    
+    # Look for a user with matching username
+    for user_id, user_data in users.items():
+        if user_data.get('username') == username:
+            user_data['whitelisted'] = whitelisted_value
+            save_user(user_id, user_data)
+            found = True
+    
+    return found
 
 def set_admin_by_username(username, is_admin_value=True):
     """Set a user as admin by username."""
@@ -179,6 +226,7 @@ def set_admin_by_username(username, is_admin_value=True):
         'first_name': username,
         'registered_at': datetime.now().isoformat(),
         'is_admin': is_admin_value,
+        'whitelisted': False,  # Keep default as false even for admin placeholders
         'score': 0
     }
     return save_user(user_id, user_data)
