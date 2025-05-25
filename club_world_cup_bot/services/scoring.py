@@ -64,21 +64,47 @@ def update_leaderboard():
     matches = get_all_matches()
     users = get_all_users()
     
+    # Ensure we have proper dictionaries
+    if not isinstance(predictions, dict):
+        print(f"Warning: predictions is not a dict, got {type(predictions)}")
+        return False
+    
+    if not isinstance(matches, dict):
+        print(f"Warning: matches is not a dict, got {type(matches)}")
+        return False
+    
+    if not isinstance(users, dict):
+        print(f"Warning: users is not a dict, got {type(users)}")
+        return False
+    
     # Calculate scores for each user and match
     for user_id, user_predictions in predictions.items():
         if user_id not in users:
             continue
+        
+        # Ensure user_predictions is a dictionary
+        if not isinstance(user_predictions, dict):
+            print(f"Warning: user_predictions for user {user_id} is not a dict, got {type(user_predictions)}")
+            continue
             
         total_score = 0
         for match_id, prediction in user_predictions.items():
-            if match_id in matches and 'result' in matches[match_id]:
-                match_score = calculate_score(prediction, matches[match_id]['result'])
-                total_score += match_score
+            try:
+                if match_id in matches and 'result' in matches[match_id]:
+                    match_score = calculate_score(prediction, matches[match_id]['result'])
+                    total_score += match_score
+            except Exception as e:
+                print(f"Error calculating score for user {user_id}, match {match_id}: {e}")
+                continue
         
         # Update user score in Firebase
-        user_data = users[user_id].copy()
-        user_data['score'] = total_score
-        save_user(user_id, user_data)
+        try:
+            user_data = users[user_id].copy()
+            user_data['score'] = total_score
+            save_user(user_id, user_data)
+        except Exception as e:
+            print(f"Error updating score for user {user_id}: {e}")
+            continue
     
     return True
 

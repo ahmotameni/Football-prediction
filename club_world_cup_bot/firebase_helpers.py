@@ -12,8 +12,18 @@ def get_all_users():
     try:
         database = get_database()
         users_ref = database.child('users')
-        users = users_ref.get() or {}
-        return users
+        users = users_ref.get()
+        
+        # Ensure we always return a dictionary
+        if users is None:
+            return {}
+        elif isinstance(users, list):
+            # Convert list to dictionary if needed
+            return {str(i): user for i, user in enumerate(users) if user is not None}
+        elif isinstance(users, dict):
+            return users
+        else:
+            return {}
     except Exception as e:
         print(f"Error getting users: {e}")
         return {}
@@ -108,8 +118,18 @@ def get_all_predictions():
     try:
         database = get_database()
         predictions_ref = database.child('predictions')
-        predictions = predictions_ref.get() or {}
-        return predictions
+        predictions = predictions_ref.get()
+        
+        # Ensure we always return a dictionary
+        if predictions is None:
+            return {}
+        elif isinstance(predictions, list):
+            # Convert list to dictionary if needed
+            return {str(i): pred for i, pred in enumerate(predictions) if pred is not None}
+        elif isinstance(predictions, dict):
+            return predictions
+        else:
+            return {}
     except Exception as e:
         print(f"Error getting predictions: {e}")
         return {}
@@ -119,8 +139,18 @@ def get_predictions(user_id):
     try:
         database = get_database()
         predictions_ref = database.child('predictions')
-        user_predictions = predictions_ref.child(str(user_id)).get() or {}
-        return user_predictions
+        user_predictions = predictions_ref.child(str(user_id)).get()
+        
+        # Ensure we always return a dictionary
+        if user_predictions is None:
+            return {}
+        elif isinstance(user_predictions, list):
+            # Convert list to dictionary if needed
+            return {str(i): pred for i, pred in enumerate(user_predictions) if pred is not None}
+        elif isinstance(user_predictions, dict):
+            return user_predictions
+        else:
+            return {}
     except Exception as e:
         print(f"Error getting predictions for user {user_id}: {e}")
         return {}
