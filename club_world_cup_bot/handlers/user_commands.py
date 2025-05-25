@@ -22,8 +22,7 @@ from club_world_cup_bot.keyboards.persistent_keyboard import (
 )
 from club_world_cup_bot.services.prediction import (
     register_user, get_upcoming_matches, get_matches,
-    save_prediction, get_user_predictions, is_admin, is_admin_by_username,
-    load_data, save_data, PREDICTIONS_FILE
+    save_prediction, get_user_predictions, is_admin, is_admin_by_username
 )
 from club_world_cup_bot.services.scoring import get_leaderboard, get_user_rank, calculate_score
 
@@ -252,12 +251,7 @@ async def process_resolution_type(callback: CallbackQuery):
         prediction_data['knockout_winner'] = knockout_winner
     
     # Save prediction with all data
-    predictions = load_data(PREDICTIONS_FILE)
-    if user_id not in predictions:
-        predictions[user_id] = {}
-    
-    predictions[user_id][match_id] = prediction_data
-    save_data(PREDICTIONS_FILE, predictions)
+    save_prediction(user_id, match_id, int(home_goals), int(away_goals), resolution_string)
     
     # Format resolution text for display
     resolution_text = resolution_type

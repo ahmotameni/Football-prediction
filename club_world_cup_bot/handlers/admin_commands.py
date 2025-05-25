@@ -23,7 +23,7 @@ from club_world_cup_bot.services.prediction import (
     is_admin, is_admin_by_username, add_match, set_match_result, get_matches
 )
 from club_world_cup_bot.services.scoring import update_leaderboard
-from club_world_cup_bot.services.export_csv import export_predictions_csv, get_exported_files, get_file_content
+from club_world_cup_bot.services.export_csv import export_predictions_csv
 
 # Optional API Football integration
 try:
@@ -49,9 +49,7 @@ class SetResultForm(StatesGroup):
     resolution_type = State()
     knockout_winner = State()
 
-class ExportedFilesForm(StatesGroup):
-    """States for viewing exported files."""
-    waiting_for_selection = State()
+# Removed ExportedFilesForm as it's no longer needed with Firebase
 
 def check_admin_permissions(user):
     """Check if user has admin permissions by ID or username."""
@@ -104,7 +102,7 @@ async def button_export_csv(message: Message):
 @router.message(F.text == "📁 View Exports")
 async def button_exported_files(message: Message, state: FSMContext):
     """Handle the View Exports button."""
-    await cmd_exported_files(message, state)
+    await message.answer("Export functionality has been simplified. Use 'Export CSV' to generate and download a new export file.")
 
 # Original command handlers
 @router.message(Command("admin"))
@@ -402,65 +400,9 @@ async def process_knockout_winner(message: Message, state: FSMContext):
 
 @router.message(Command("exportedfiles"))
 async def cmd_exported_files(message: Message, state: FSMContext):
-    """Handle the /exportedfiles command to view exported CSV files."""
+    """Handle the /exportedfiles command - simplified for Firebase version."""
     if not check_admin_permissions(message.from_user):
         await message.answer(ADMIN_ONLY)
         return
     
-    files = get_exported_files()
-    
-    if not files:
-        await message.answer("No exported files found.")
-        return
-    
-    response = "Exported CSV files:\n\n"
-    
-    # List the files with a number for selection
-    for i, filename in enumerate(files):
-        response += f"{i+1}. {filename}\n"
-    
-    response += "\nTo view a file, reply with the number."
-    
-    # Save state to handle the next message
-    await state.set_state(ExportedFilesForm.waiting_for_selection)
-    await state.update_data(files=files)
-    
-    await message.answer(response)
-
-@router.message(ExportedFilesForm.waiting_for_selection)
-async def handle_file_selection(message: Message, state: FSMContext):
-    """Handle file selection after listing exported files."""
-    if not message.text or not message.text.isdigit():
-        await message.answer("Please enter a valid number.")
-        return
-    
-    data = await state.get_data()
-    files = data.get("files", [])
-    
-    try:
-        selection = int(message.text)
-        if selection < 1 or selection > len(files):
-            await message.answer(f"Please select a number between 1 and {len(files)}.")
-            return
-        
-        selected_file = files[selection - 1]
-        file_content = get_file_content(selected_file)
-        
-        if not file_content:
-            await message.answer("Error reading file content.")
-            return
-        
-        # Send as document
-        from io import BytesIO
-        document = BytesIO(file_content.encode('utf-8'))
-        await message.answer_document(
-            document=document,
-            filename=selected_file,
-            caption=f"File: {selected_file}"
-        )
-        
-        # Clear state
-        await state.clear()
-        
-    except (ValueError, IndexError):
-        await message.answer("Invalid selection. Please try again.") 
+    await message.answer("Export functionality has been simplified. Use the 'Export CSV' command or button to generate and download a new export file directly.") 

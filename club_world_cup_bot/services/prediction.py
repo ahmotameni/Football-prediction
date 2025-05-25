@@ -15,13 +15,22 @@ def get_matches():
 def get_upcoming_matches():
     """Get matches that haven't started yet."""
     matches = get_matches()
-    now = datetime.now()
     
+    # Handle case where get_matches returns None or empty
+    if not matches or not isinstance(matches, dict):
+        return {}
+    
+    now = datetime.now()
     upcoming = {}
+    
     for match_id, match in matches.items():
-        match_time = datetime.strptime(match['time'], '%Y-%m-%d %H:%M')
-        if match_time > now and not match.get('locked', False):
-            upcoming[match_id] = match
+        try:
+            match_time = datetime.strptime(match['time'], '%Y-%m-%d %H:%M')
+            if match_time > now and not match.get('locked', False):
+                upcoming[match_id] = match
+        except (ValueError, KeyError) as e:
+            print(f"Error processing match {match_id}: {e}")
+            continue
     
     return upcoming
 
@@ -177,14 +186,23 @@ def set_admin_by_username(username, is_admin_value=True):
 def lock_expired_matches():
     """Lock matches that have already started."""
     matches = get_matches()
+    
+    # Handle case where get_matches returns None or empty
+    if not matches or not isinstance(matches, dict):
+        return False
+    
     now = datetime.now()
     updated = False
     
     for match_id, match in matches.items():
-        match_time = datetime.strptime(match['time'], '%Y-%m-%d %H:%M')
-        if match_time <= now and not match.get('locked', False):
-            match['locked'] = True
-            save_match(match_id, match)
-            updated = True
+        try:
+            match_time = datetime.strptime(match['time'], '%Y-%m-%d %H:%M')
+            if match_time <= now and not match.get('locked', False):
+                match['locked'] = True
+                save_match(match_id, match)
+                updated = True
+        except (ValueError, KeyError) as e:
+            print(f"Error processing match {match_id}: {e}")
+            continue
     
     return updated 

@@ -45,8 +45,18 @@ def get_all_matches():
     try:
         database = get_database()
         matches_ref = database.child('matches')
-        matches = matches_ref.get() or {}
-        return matches
+        matches = matches_ref.get()
+        
+        # Ensure we always return a dictionary
+        if matches is None:
+            return {}
+        elif isinstance(matches, list):
+            # Convert list to dictionary if needed
+            return {str(i): match for i, match in enumerate(matches) if match is not None}
+        elif isinstance(matches, dict):
+            return matches
+        else:
+            return {}
     except Exception as e:
         print(f"Error getting matches: {e}")
         return {}
