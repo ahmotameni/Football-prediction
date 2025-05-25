@@ -1,41 +1,16 @@
 """
-Service for handling match predictions.
+Service for handling match predictions using Firebase Realtime Database.
 """
-import json
-import os
 from datetime import datetime
-
-# Ensure data directory exists
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
-os.makedirs(DATA_DIR, exist_ok=True)
-
-# File paths
-PREDICTIONS_FILE = os.path.join(DATA_DIR, 'predictions.json')
-MATCHES_FILE = os.path.join(DATA_DIR, 'matches.json')
-USERS_FILE = os.path.join(DATA_DIR, 'users.json')
-
-def load_data(file_path, default=None):
-    """Load data from a JSON file."""
-    if default is None:
-        default = {}
-    
-    if not os.path.exists(file_path):
-        return default
-    
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError):
-        return default
-
-def save_data(file_path, data):
-    """Save data to a JSON file."""
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+from firebase_helpers import (
+    get_all_users, save_user, get_user,
+    get_all_matches, save_match, add_match, update_match,
+    get_all_predictions, get_predictions, save_prediction
+)
 
 def get_matches():
     """Get all matches."""
-    return load_data(MATCHES_FILE)
+    return get_all_matches()
 
 def get_upcoming_matches():
     """Get matches that haven't started yet."""
@@ -52,14 +27,9 @@ def get_upcoming_matches():
 
 def add_match(team1, team2, time, is_knockout=False):
     """Add a new match."""
-    matches = get_matches()
+    from firebase_helpers import add_match as firebase_add_match
     
-    # Generate a unique match ID
-    match_id = str(len(matches) + 1)
-    while match_id in matches:
-        match_id = str(int(match_id) + 1)
-    
-    matches[match_id] = {
+    match_data = {
         'team1': team1,
         'team2': team2,
         'time': time,
@@ -67,8 +37,7 @@ def add_match(team1, team2, time, is_knockout=False):
         'locked': False
     }
     
-    save_data(MATCHES_FILE, matches)
-    return match_id
+    return firebase_add_match(match_data)
 
 def set_match_result(match_id, home_goals, away_goals, resolution_type=None):
     """Set the result for a match."""
@@ -77,24 +46,28 @@ def set_match_result(match_id, home_goals, away_goals, resolution_type=None):
     if match_id not in matches:
         return False
     
-    matches[match_id]['result'] = {
+    match_data = matches[match_id].copy()
+    match_data['result'] = {
         'home_goals': home_goals,
         'away_goals': away_goals
     }
     
-    if matches[match_id].get('is_knockout', False) and resolution_type:
+    if match_data.get('is_knockout', False) and resolution_type:
         # Parse resolution_type for knockout winner if available
         if "_" in resolution_type:
             parts = resolution_type.split("_", 1)  # Split only on first underscore
             res_type = parts[0]
             knockout_winner = parts[1]
-            matches[match_id]['result']['resolution_type'] = res_type
-            matches[match_id]['result']['knockout_winner'] = knockout_winner
+            match_data['result']['resolution_type'] = res_type
+            match_data['result']['knockout_winner'] = knockout_winner
         else:
-            matches[match_id]['result']['resolution_type'] = resolution_type
+            match_data['result']['resolution_type'] = resolution_type
     
-    matches[match_id]['locked'] = True
-    save_data(MATCHES_FILE, matches)
+    match_data['locked'] = True
+    
+    # Save the updated match to Firebase
+    if not save_match(match_id, match_data):
+        return False
     
     # Update leaderboard after setting match result
     from .scoring import update_leaderboard
@@ -104,12 +77,9 @@ def set_match_result(match_id, home_goals, away_goals, resolution_type=None):
 
 def save_prediction(user_id, match_id, home_goals, away_goals, resolution_type=None):
     """Save a user's prediction for a match."""
-    predictions = load_data(PREDICTIONS_FILE)
+    from firebase_helpers import save_prediction as firebase_save_prediction
     
-    if user_id not in predictions:
-        predictions[user_id] = {}
-    
-    predictions[user_id][match_id] = {
+    prediction_data = {
         'home_goals': home_goals,
         'away_goals': away_goals
     }
@@ -121,45 +91,41 @@ def save_prediction(user_id, match_id, home_goals, away_goals, resolution_type=N
             parts = resolution_type.split("_", 1)  # Split only on first underscore
             res_type = parts[0]
             knockout_winner = parts[1]
-            predictions[user_id][match_id]['resolution_type'] = res_type
-            predictions[user_id][match_id]['knockout_winner'] = knockout_winner
+            prediction_data['resolution_type'] = res_type
+            prediction_data['knockout_winner'] = knockout_winner
         else:
-            predictions[user_id][match_id]['resolution_type'] = resolution_type
+            prediction_data['resolution_type'] = resolution_type
     
-    save_data(PREDICTIONS_FILE, predictions)
-    return True
+    return firebase_save_prediction(user_id, match_id, prediction_data)
 
 def get_user_predictions(user_id):
     """Get all predictions for a user."""
-    predictions = load_data(PREDICTIONS_FILE)
-    return predictions.get(user_id, {})
+    return get_predictions(user_id)
 
 def register_user(user_id, username, first_name, last_name=None):
     """Register a new user or update existing user info."""
-    users = load_data(USERS_FILE)
-    
-    users[str(user_id)] = {
+    user_data = {
         'username': username,
         'first_name': first_name,
         'last_name': last_name,
         'registered_at': datetime.now().isoformat(),
-        'is_admin': False  # Default value
+        'is_admin': False,  # Default value
+        'score': 0  # Default score
     }
     
-    save_data(USERS_FILE, users)
-    return True
+    return save_user(user_id, user_data)
 
 def is_admin(user_id):
     """Check if a user is an admin by ID."""
-    users = load_data(USERS_FILE)
-    return users.get(str(user_id), {}).get('is_admin', False)
+    user = get_user(user_id)
+    return user.get('is_admin', False)
 
 def is_admin_by_username(username):
     """Check if a user is an admin by username."""
     if not username:
         return False
         
-    users = load_data(USERS_FILE)
+    users = get_all_users()
     
     # Look for a user with matching username
     for user_data in users.values():
@@ -170,12 +136,11 @@ def is_admin_by_username(username):
 
 def set_admin(user_id, is_admin_value=True):
     """Set a user as admin by ID."""
-    users = load_data(USERS_FILE)
+    user = get_user(user_id)
     
-    if str(user_id) in users:
-        users[str(user_id)]['is_admin'] = is_admin_value
-        save_data(USERS_FILE, users)
-        return True
+    if user:
+        user['is_admin'] = is_admin_value
+        return save_user(user_id, user)
     
     return False
 
@@ -184,30 +149,30 @@ def set_admin_by_username(username, is_admin_value=True):
     if not username:
         return False
         
-    users = load_data(USERS_FILE)
+    users = get_all_users()
     found = False
     
     # Look for a user with matching username
     for user_id, user_data in users.items():
         if user_data.get('username') == username:
             user_data['is_admin'] = is_admin_value
+            save_user(user_id, user_data)
             found = True
     
     if found:
-        save_data(USERS_FILE, users)
         return True
     
     # If user not found, create a placeholder user record that will be updated
     # when the user interacts with the bot
     user_id = f"placeholder_{username}"
-    users[user_id] = {
+    user_data = {
         'username': username,
         'first_name': username,
         'registered_at': datetime.now().isoformat(),
-        'is_admin': is_admin_value
+        'is_admin': is_admin_value,
+        'score': 0
     }
-    save_data(USERS_FILE, users)
-    return True
+    return save_user(user_id, user_data)
 
 def lock_expired_matches():
     """Lock matches that have already started."""
@@ -219,9 +184,7 @@ def lock_expired_matches():
         match_time = datetime.strptime(match['time'], '%Y-%m-%d %H:%M')
         if match_time <= now and not match.get('locked', False):
             match['locked'] = True
+            save_match(match_id, match)
             updated = True
-    
-    if updated:
-        save_data(MATCHES_FILE, matches)
     
     return updated 

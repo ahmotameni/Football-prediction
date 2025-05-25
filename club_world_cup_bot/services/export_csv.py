@@ -1,17 +1,11 @@
 """
-Service for exporting data to CSV format.
+Service for exporting data to CSV format using Firebase Realtime Database.
 """
 import csv
-import os
 import io
-import glob
 from datetime import datetime
 
-from club_world_cup_bot.services.prediction import load_data, PREDICTIONS_FILE, MATCHES_FILE, USERS_FILE
-
-# Directory for exported CSV files
-EXPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'exports')
-os.makedirs(EXPORTS_DIR, exist_ok=True)
+from firebase_helpers import get_all_users, get_all_matches, get_all_predictions
 
 def generate_export_filename():
     """Generate a filename for the export with timestamp."""
@@ -20,9 +14,9 @@ def generate_export_filename():
 
 def export_predictions_csv():
     """Export all predictions and scores to a CSV file."""
-    predictions = load_data(PREDICTIONS_FILE)
-    matches = load_data(MATCHES_FILE)
-    users = load_data(USERS_FILE)
+    predictions = get_all_predictions()
+    matches = get_all_matches()
+    users = get_all_users()
     
     # Create a CSV in memory
     output = io.StringIO()
@@ -70,29 +64,6 @@ def export_predictions_csv():
     csv_data = output.getvalue()
     output.close()
     
-    # Save to file in exports directory
-    filename = generate_export_filename()
-    filepath = os.path.join(EXPORTS_DIR, filename)
-    
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(csv_data)
-    
     # Return CSV data and filename
-    return csv_data, filename
-
-def get_exported_files():
-    """Get a list of all exported CSV files."""
-    files = glob.glob(os.path.join(EXPORTS_DIR, "*.csv"))
-    files.sort(key=os.path.getmtime, reverse=True)  # Sort by modification time, newest first
-    
-    return [os.path.basename(f) for f in files]
-
-def get_file_content(filename):
-    """Get the content of an exported CSV file."""
-    filepath = os.path.join(EXPORTS_DIR, filename)
-    
-    if not os.path.exists(filepath) or not filename.endswith('.csv'):
-        return None
-    
-    with open(filepath, 'r', encoding='utf-8') as f:
-        return f.read() 
+    filename = generate_export_filename()
+    return csv_data, filename 

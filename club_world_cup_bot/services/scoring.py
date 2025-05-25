@@ -1,13 +1,15 @@
 """
-Service for calculating scores and updating the leaderboard.
+Service for calculating scores and updating the leaderboard using Firebase Realtime Database.
 """
-import json
-import os
 from datetime import datetime
 from club_world_cup_bot.config.scoring_rules import SCORING_RULES
 
-# Import from prediction service
-from club_world_cup_bot.services.prediction import load_data, save_data, PREDICTIONS_FILE, MATCHES_FILE, USERS_FILE
+# Import Firebase helpers
+from firebase_helpers import (
+    get_all_users, save_user,
+    get_all_matches,
+    get_all_predictions
+)
 
 def calculate_score(prediction, result):
     """Calculate score for a single prediction."""
@@ -58,13 +60,9 @@ def calculate_score(prediction, result):
 
 def update_leaderboard():
     """Update scores for all users based on match results."""
-    predictions = load_data(PREDICTIONS_FILE)
-    matches = load_data(MATCHES_FILE)
-    users = load_data(USERS_FILE)
-    
-    # Reset scores
-    for user_id in users:
-        users[user_id]['score'] = 0
+    predictions = get_all_predictions()
+    matches = get_all_matches()
+    users = get_all_users()
     
     # Calculate scores for each user and match
     for user_id, user_predictions in predictions.items():
@@ -77,15 +75,16 @@ def update_leaderboard():
                 match_score = calculate_score(prediction, matches[match_id]['result'])
                 total_score += match_score
         
-        users[user_id]['score'] = total_score
+        # Update user score in Firebase
+        user_data = users[user_id].copy()
+        user_data['score'] = total_score
+        save_user(user_id, user_data)
     
-    # Save updated user scores
-    save_data(USERS_FILE, users)
     return True
 
 def get_leaderboard():
     """Get sorted leaderboard with user scores."""
-    users = load_data(USERS_FILE)
+    users = get_all_users()
     
     # Filter out users without scores and sort by score
     leaderboard = [

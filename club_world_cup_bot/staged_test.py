@@ -1,8 +1,8 @@
 """
 Staged Testing for the Club World Cup 2025 Prediction Bot.
 
-This script creates test data for specific tournament stages and allows simulating
-different points in time during the tournament.
+This script creates test data for specific tournament stages using Firebase Realtime Database.
+Each stage represents a different point in time during the tournament.
 
 Available stages:
 1. PRE_TOURNAMENT: All matches available for predictions
@@ -11,174 +11,206 @@ Available stages:
 4. TOURNAMENT_END: All games finished with results
 
 Usage:
-    python staged_test.py [stage_number] [--reload]
+    python staged_test.py [stage_number]
     
-    If stage_number is provided, the environment will be set to that stage.
-    If --reload is provided, it will completely reload data from stored stage snapshots.
-    Otherwise, the environment will transition to that stage keeping current predictions.
+    If stage_number is provided, the Firebase database will be set to that stage.
 """
-import os
-import sys
-import json
-import datetime
 import random
-import shutil
+import datetime
 from datetime import timedelta
 
-# Ensure we're in the correct directory
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-os.chdir(SCRIPT_DIR)
-
-# Define paths
-DATA_DIR = os.path.join(SCRIPT_DIR, 'data')
-STAGE_DATA_DIR = os.path.join(SCRIPT_DIR, 'stage_data')
-PREDICTIONS_FILE = os.path.join(DATA_DIR, 'predictions.json')
-MATCHES_FILE = os.path.join(DATA_DIR, 'matches.json')
-USERS_FILE = os.path.join(DATA_DIR, 'users.json')
-CURRENT_STAGE_FILE = os.path.join(DATA_DIR, 'current_stage.json')
-
-# Create necessary directories
-os.makedirs(DATA_DIR, exist_ok=True)
-os.makedirs(STAGE_DATA_DIR, exist_ok=True)
+# Import Firebase helpers
+from firebase_helpers import (
+    get_all_users, save_user,
+    get_all_matches, save_match,
+    get_all_predictions, save_prediction,
+    get_current_stage, set_current_stage,
+    clear_all_data
+)
 
 # Stage definitions
 STAGES = {
     1: "PRE_TOURNAMENT",
-    2: "PREDICTIONS_MADE",
+    2: "PREDICTIONS_MADE", 
     3: "FIRST_DAY",
     4: "TOURNAMENT_END"
 }
 
-# Flag to force recreate stage data
-FORCE_RECREATE_STAGES = True
-
-def update_match_years(matches, target_year="2025"):
-    """Update match years to the target year."""
-    updated = False
-    for match_id in matches:
-        if "time" in matches[match_id]:
-            time_str = matches[match_id]["time"]
-            current_year = time_str[:4]
-            if current_year != target_year:
-                matches[match_id]["time"] = f"{target_year}{time_str[4:]}"
-                updated = True
-    
-    return matches, updated
-
-def save_json(file_path, data):
-    """Save data to a JSON file."""
-    with open(file_path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def load_json(file_path, default=None):
-    """Load data from a JSON file."""
-    if default is None:
-        default = {}
-    
-    if not os.path.exists(file_path):
-        return default
-    
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError):
-        return default
-
-def backup_data():
-    """Backup existing data files."""
-    print("Backing up current data...")
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_dir = os.path.join(SCRIPT_DIR, f'data_backup_{timestamp}')
-    
-    if os.path.exists(DATA_DIR):
-        shutil.copytree(DATA_DIR, backup_dir)
-        print(f"Data backed up to {backup_dir}")
-
 def create_test_users():
-    """Create test users including the admin from credentials.env."""
+    """Create test users including the admin."""
     print("Creating test users...")
     
-    # Try to get admin username from credentials.env
-    admin_username = "Ahmotameni1"  # Default from provided file
+    admin_username = "Ahmotameni1"  # Default admin username
     
     # Create users
-    users = {
-        "54227407": {
-            "username": "Ahmotameni",
-            "first_name": "AmirHossein",
-            "last_name": "Motameni",
-            "registered_at": "2025-05-10T00:54:42.029415",
-            "is_admin": False
+    users = [
+        {
+            "user_id": "54227407",
+            "data": {
+                "username": "Ahmotameni",
+                "first_name": "AmirHossein",
+                "last_name": "Motameni",
+                "registered_at": "2025-05-10T00:54:42.029415",
+                "is_admin": False,
+                "score": 0
+            }
         },
-        "123456789": {
-            "username": admin_username,
-            "first_name": "Admin",
-            "last_name": "User",
-            "registered_at": datetime.datetime.now().isoformat(),
-            "is_admin": True
+        {
+            "user_id": "123456789",
+            "data": {
+                "username": admin_username,
+                "first_name": "Admin",
+                "last_name": "User",
+                "registered_at": datetime.datetime.now().isoformat(),
+                "is_admin": True,
+                "score": 0
+            }
         },
-        "987654321": {
-            "username": "regular_user",
-            "first_name": "Regular",
-            "last_name": "User",
-            "registered_at": datetime.datetime.now().isoformat(),
-            "is_admin": False
+        {
+            "user_id": "987654321",
+            "data": {
+                "username": "regular_user",
+                "first_name": "Regular",
+                "last_name": "User",
+                "registered_at": datetime.datetime.now().isoformat(),
+                "is_admin": False,
+                "score": 0
+            }
         }
-    }
+    ]
     
-    # Add 10 more random users as requested
+    # Add 10 more random users
     for i in range(1, 11):
         user_id = str(random.randint(100000000, 999999999))
-        users[user_id] = {
-            "username": f"user_{i}",
-            "first_name": f"User {i}",
-            "last_name": f"Last{i}",
-            "registered_at": datetime.datetime.now().isoformat(),
-            "is_admin": False
-        }
+        users.append({
+            "user_id": user_id,
+            "data": {
+                "username": f"user_{i}",
+                "first_name": f"User {i}",
+                "last_name": f"Last{i}",
+                "registered_at": datetime.datetime.now().isoformat(),
+                "is_admin": False,
+                "score": 0
+            }
+        })
     
-    save_json(USERS_FILE, users)
+    # Save users to Firebase
+    for user in users:
+        save_user(user["user_id"], user["data"])
+    
     print(f"Created {len(users)} test users.")
-    return users
+    return {user["user_id"]: user["data"] for user in users}
+
+def create_base_matches():
+    """Create base match data for the tournament."""
+    print("Creating tournament matches...")
+    
+    # Club World Cup Teams (16 teams)
+    teams = [
+        "Manchester City", "Real Madrid", "Bayern Munich", "Flamengo",
+        "Al-Ahly", "Auckland City", "Urawa Red Diamonds", "Al-Hilal",
+        "Seattle Sounders", "Wydad Casablanca", "Mamelodi Sundowns", "Ulsan Hyundai",
+        "Monterrey", "Palmeiras", "Esperance", "Inter Milan"
+    ]
+    
+    now = datetime.datetime.now()
+    match_id = 1
+    
+    # Group stage matches - set to June 15-20, 2025
+    base_date = datetime.datetime(2025, 6, 15, 18, 0)
+    
+    # Group stage (4 groups of 4 teams each)
+    for group in range(4):
+        group_teams = teams[group*4:(group+1)*4]
+        day_offset = 0
+        
+        # Each team plays each other team in their group
+        for i in range(4):
+            for j in range(i+1, 4):
+                match_time = base_date + timedelta(days=day_offset, hours=random.randint(0, 6))
+                
+                match_data = {
+                    "team1": group_teams[i],
+                    "team2": group_teams[j],
+                    "time": match_time.strftime("%Y-%m-%d %H:%M"),
+                    "is_knockout": False,
+                    "locked": False
+                }
+                
+                save_match(str(match_id), match_data)
+                match_id += 1
+                
+                # Space out matches
+                if match_id % 4 == 0:
+                    day_offset += 1
+    
+    # Knockout stage - set to later dates
+    knockout_teams = teams[:8]  # Top 8 teams qualify
+    
+    # Quarter-finals
+    knockout_date = datetime.datetime(2025, 6, 25, 20, 0)
+    for i in range(0, 8, 2):
+        match_time = knockout_date + timedelta(days=i//2)
+        
+        match_data = {
+            "team1": knockout_teams[i],
+            "team2": knockout_teams[i+1],
+            "time": match_time.strftime("%Y-%m-%d %H:%M"),
+            "is_knockout": True,
+            "locked": False
+        }
+        
+        save_match(str(match_id), match_data)
+        match_id += 1
+    
+    # Semi-finals
+    semi_date = datetime.datetime(2025, 6, 29, 20, 0)
+    semi_teams = knockout_teams[:4]
+    for i in range(0, 4, 2):
+        match_time = semi_date + timedelta(days=i//2)
+        
+        match_data = {
+            "team1": semi_teams[i],
+            "team2": semi_teams[i+1],
+            "time": match_time.strftime("%Y-%m-%d %H:%M"),
+            "is_knockout": True,
+            "locked": False
+        }
+        
+        save_match(str(match_id), match_data)
+        match_id += 1
+    
+    # Final
+    final_date = datetime.datetime(2025, 7, 2, 20, 0)
+    final_teams = semi_teams[:2]
+    
+    match_data = {
+        "team1": final_teams[0],
+        "team2": final_teams[1],
+        "time": final_date.strftime("%Y-%m-%d %H:%M"),
+        "is_knockout": True,
+        "locked": False
+    }
+    
+    save_match(str(match_id), match_data)
+    
+    matches = get_all_matches()
+    print(f"Created {len(matches)} tournament matches.")
+    return matches
 
 def prepare_stage_1():
     """Stage 1: PRE_TOURNAMENT - All matches available for predictions."""
     print("\n=== SETTING UP STAGE 1: PRE_TOURNAMENT ===")
     
-    # Load matches from the matches.json file
-    matches = load_json(MATCHES_FILE)
+    # Clear existing data
+    clear_all_data()
     
-    # Update years to 2025
-    matches, year_updated = update_match_years(matches)
-    if year_updated:
-        print("Updated match years to 2025")
-    
-    # Make sure no match is locked or has results
-    for match_id in matches:
-        if "locked" in matches[match_id]:
-            matches[match_id]["locked"] = False
-        if "result" in matches[match_id]:
-            del matches[match_id]["result"]
-    
-    save_json(MATCHES_FILE, matches)
-    
-    # Create users
+    # Create users and matches
     users = create_test_users()
+    matches = create_base_matches()
     
-    # No predictions yet in this stage
-    save_json(PREDICTIONS_FILE, {})
-    
-    # Save current stage
-    save_json(CURRENT_STAGE_FILE, {"current_stage": 1})
-    
-    # Save stage data
-    stage_dir = os.path.join(STAGE_DATA_DIR, "stage1")
-    os.makedirs(stage_dir, exist_ok=True)
-    
-    shutil.copy(MATCHES_FILE, os.path.join(stage_dir, "matches.json"))
-    shutil.copy(USERS_FILE, os.path.join(stage_dir, "users.json"))
-    shutil.copy(PREDICTIONS_FILE, os.path.join(stage_dir, "predictions.json"))
-    shutil.copy(CURRENT_STAGE_FILE, os.path.join(stage_dir, "current_stage.json"))
+    # Set current stage
+    set_current_stage(1)
     
     print("Stage 1 setup complete. All matches are available for prediction.")
     return matches, users
@@ -187,12 +219,10 @@ def prepare_stage_2(matches, users):
     """Stage 2: PREDICTIONS_MADE - Multiple users have made predictions, no games played."""
     print("\n=== SETTING UP STAGE 2: PREDICTIONS_MADE ===")
     
-    predictions = {}
+    prediction_count = 0
     
     # For each user, generate predictions for most matches
     for user_id in users:
-        user_predictions = {}
-        
         # Each user predicts 80-100% of matches
         predict_count = int(len(matches) * (0.8 + random.random() * 0.2))
         match_ids = list(matches.keys())
@@ -205,7 +235,7 @@ def prepare_stage_2(matches, users):
             home_goals = random.randint(0, 5)
             away_goals = random.randint(0, 4)
             
-            prediction = {
+            prediction_data = {
                 "home_goals": home_goals,
                 "away_goals": away_goals
             }
@@ -213,42 +243,28 @@ def prepare_stage_2(matches, users):
             # Add resolution type for knockout matches
             if matches[match_id].get("is_knockout", False):
                 resolution_types = ["FT", "ET", "PEN"]
-                prediction["resolution_type"] = random.choice(resolution_types)
+                prediction_data["resolution_type"] = random.choice(resolution_types)
             
-            user_predictions[match_id] = prediction
-        
-        predictions[user_id] = user_predictions
+            save_prediction(user_id, match_id, prediction_data)
+            prediction_count += 1
     
-    # Save predictions
-    save_json(PREDICTIONS_FILE, predictions)
+    # Set current stage
+    set_current_stage(2)
     
-    # Save current stage
-    save_json(CURRENT_STAGE_FILE, {"current_stage": 2})
-    
-    # Save stage data
-    stage_dir = os.path.join(STAGE_DATA_DIR, "stage2")
-    os.makedirs(stage_dir, exist_ok=True)
-    
-    shutil.copy(MATCHES_FILE, os.path.join(stage_dir, "matches.json"))
-    shutil.copy(USERS_FILE, os.path.join(stage_dir, "users.json"))
-    shutil.copy(PREDICTIONS_FILE, os.path.join(stage_dir, "predictions.json"))
-    shutil.copy(CURRENT_STAGE_FILE, os.path.join(stage_dir, "current_stage.json"))
-    
-    print(f"Stage 2 setup complete. {len(users)} users have made predictions.")
-    
-    return predictions
+    print(f"Stage 2 setup complete. Created {prediction_count} predictions.")
+    return get_all_predictions()
 
 def prepare_stage_3(matches, users, predictions):
     """Stage 3: FIRST_DAY - First day completed with some results."""
     print("\n=== SETTING UP STAGE 3: FIRST_DAY ===")
     
     # Lock matches and add results for the first day (June 15)
-    first_day_matches = []
+    first_day_count = 0
     
     for match_id, match in matches.items():
         match_time = match.get("time", "")
         if match_time[5:10] == "06-15":  # Match the day regardless of year
-            first_day_matches.append(match_id)
+            first_day_count += 1
             
             # Add result
             home_goals = random.randint(0, 4)
@@ -265,26 +281,15 @@ def prepare_stage_3(matches, users, predictions):
                 match["result"]["resolution_type"] = random.choice(resolution_types)
             
             match["locked"] = True
-    
-    # Save updated matches
-    save_json(MATCHES_FILE, matches)
+            save_match(match_id, match)
     
     # Calculate scores
     calculate_scores(predictions, matches, users)
     
-    # Save current stage
-    save_json(CURRENT_STAGE_FILE, {"current_stage": 3})
+    # Set current stage
+    set_current_stage(3)
     
-    # Save stage data
-    stage_dir = os.path.join(STAGE_DATA_DIR, "stage3")
-    os.makedirs(stage_dir, exist_ok=True)
-    
-    shutil.copy(MATCHES_FILE, os.path.join(stage_dir, "matches.json"))
-    shutil.copy(USERS_FILE, os.path.join(stage_dir, "users.json"))
-    shutil.copy(PREDICTIONS_FILE, os.path.join(stage_dir, "predictions.json"))
-    shutil.copy(CURRENT_STAGE_FILE, os.path.join(stage_dir, "current_stage.json"))
-    
-    print(f"Stage 3 setup complete. {len(first_day_matches)} matches from first day have results.")
+    print(f"Stage 3 setup complete. {first_day_count} matches from first day have results.")
 
 def prepare_stage_4(matches, users, predictions):
     """Stage 4: TOURNAMENT_END - All games finished with results."""
@@ -311,24 +316,13 @@ def prepare_stage_4(matches, users, predictions):
             match["result"]["resolution_type"] = random.choice(resolution_types)
         
         match["locked"] = True
-    
-    # Save updated matches
-    save_json(MATCHES_FILE, matches)
+        save_match(match_id, match)
     
     # Calculate scores
     calculate_scores(predictions, matches, users)
     
-    # Save current stage
-    save_json(CURRENT_STAGE_FILE, {"current_stage": 4})
-    
-    # Save stage data
-    stage_dir = os.path.join(STAGE_DATA_DIR, "stage4")
-    os.makedirs(stage_dir, exist_ok=True)
-    
-    shutil.copy(MATCHES_FILE, os.path.join(stage_dir, "matches.json"))
-    shutil.copy(USERS_FILE, os.path.join(stage_dir, "users.json"))
-    shutil.copy(PREDICTIONS_FILE, os.path.join(stage_dir, "predictions.json"))
-    shutil.copy(CURRENT_STAGE_FILE, os.path.join(stage_dir, "current_stage.json"))
+    # Set current stage
+    set_current_stage(4)
     
     print("Stage 4 setup complete. All matches have results.")
 
@@ -394,15 +388,15 @@ def calculate_scores(predictions, matches, users):
         # Save user score
         if user_id in users:
             users[user_id]["score"] = total_score
+            save_user(user_id, users[user_id])
     
-    save_json(USERS_FILE, users)
     print("Scores calculated and saved.")
 
 def display_leaderboard():
     """Display the current leaderboard."""
     print("\n=== LEADERBOARD ===")
     
-    users = load_json(USERS_FILE)
+    users = get_all_users()
     
     # Create leaderboard
     leaderboard = []
@@ -421,283 +415,58 @@ def display_leaderboard():
     for i, entry in enumerate(leaderboard):
         print(f"{i+1}. {entry['name']} (@{entry['username']}): {entry['score']} pts")
 
-def get_current_stage():
-    """Get the current stage from the stage file."""
-    stage_data = load_json(CURRENT_STAGE_FILE, {"current_stage": 1})
-    return stage_data.get("current_stage", 1)
-
-def transition_to_stage(target_stage):
-    """
-    Transition from current stage to target stage without reloading data.
-    This keeps all current data and only applies changes needed for the target stage.
-    """
-    current_stage = get_current_stage()
-    
-    if current_stage == target_stage:
-        print(f"Already at stage {target_stage}: {STAGES[target_stage]}")
-        return True
-    
-    print(f"\n=== TRANSITIONING FROM STAGE {current_stage} TO STAGE {target_stage} ===")
-    print(f"Current: {STAGES[current_stage]} → Target: {STAGES[target_stage]}")
-    
-    # Load current data
-    matches = load_json(MATCHES_FILE)
-    users = load_json(USERS_FILE)
-    predictions = load_json(PREDICTIONS_FILE)
-    
-    # Update years to 2025 (needed for any stage)
-    matches, year_updated = update_match_years(matches)
-    if year_updated:
-        print("Updated match years to 2025")
-        save_json(MATCHES_FILE, matches)
-    
-    # Moving forward in stages
-    if target_stage > current_stage:
-        # Stage 1 → 2: Nothing to do, just updating the stage marker
-        if current_stage == 1 and target_stage == 2:
-            print("Transitioning to PREDICTIONS_MADE stage")
-            # User predictions should already exist, just update the stage marker
-        
-        # Stage 2 → 3: Add first day results
-        elif current_stage == 2 and target_stage == 3:
-            print("Transitioning to FIRST_DAY stage")
-            # Add results for first day matches
-            first_day_matches = []
-            for match_id, match in matches.items():
-                match_time = match.get("time", "")
-                if match_time[5:10] == "06-15":  # Match the day regardless of year
-                    first_day_matches.append(match_id)
-                    
-                    # Add result if no result exists
-                    if "result" not in match:
-                        home_goals = random.randint(0, 4)
-                        away_goals = random.randint(0, 3)
-                        
-                        match["result"] = {
-                            "home_goals": home_goals,
-                            "away_goals": away_goals
-                        }
-                        
-                        # Add resolution type for knockout matches
-                        if match.get("is_knockout", False):
-                            resolution_types = ["FT", "ET", "PEN"]
-                            match["result"]["resolution_type"] = random.choice(resolution_types)
-                        
-                        match["locked"] = True
-            
-            print(f"Added results for {len(first_day_matches)} first day matches")
-            save_json(MATCHES_FILE, matches)
-            
-            # Calculate scores
-            calculate_scores(predictions, matches, users)
-        
-        # Stage 3 → 4: Add all remaining results
-        elif current_stage == 3 and target_stage == 4:
-            print("Transitioning to TOURNAMENT_END stage")
-            # Add results for all remaining matches
-            remaining_matches = 0
-            for match_id, match in matches.items():
-                # Skip matches that already have results
-                if "result" in match:
-                    continue
-                
-                # Add result
-                home_goals = random.randint(0, 5)
-                away_goals = random.randint(0, 4)
-                
-                match["result"] = {
-                    "home_goals": home_goals,
-                    "away_goals": away_goals
-                }
-                
-                # Add resolution type for knockout matches
-                if match.get("is_knockout", False):
-                    resolution_types = ["FT", "ET", "PEN"]
-                    match["result"]["resolution_type"] = random.choice(resolution_types)
-                
-                match["locked"] = True
-                remaining_matches += 1
-            
-            print(f"Added results for {remaining_matches} remaining matches")
-            save_json(MATCHES_FILE, matches)
-            
-            # Calculate scores
-            calculate_scores(predictions, matches, users)
-        
-        # Going too many stages at once
-        else:
-            print(f"Transitioning multiple stages: {current_stage} → {target_stage}")
-            # Process intermediate stages
-            for intermediate_stage in range(current_stage + 1, target_stage + 1):
-                transition_to_stage(intermediate_stage)
-                return True
-    
-    # Moving backward in stages
-    else:
-        # Stage 4 → 3: Remove results for matches after first day
-        if current_stage == 4 and target_stage == 3:
-            print("Transitioning back to FIRST_DAY stage")
-            # Keep only first day results, remove the rest
-            removed_results = 0
-            for match_id, match in matches.items():
-                match_time = match.get("time", "")
-                if match_time[5:10] != "06-15" and "result" in match:  # Not first day
-                    del match["result"]
-                    if "locked" in match:
-                        match["locked"] = False
-                    removed_results += 1
-            
-            print(f"Removed results for {removed_results} matches after first day")
-            save_json(MATCHES_FILE, matches)
-            
-            # Recalculate scores
-            calculate_scores(predictions, matches, users)
-        
-        # Stage 3 → 2: Remove all results
-        elif current_stage == 3 and target_stage == 2:
-            print("Transitioning back to PREDICTIONS_MADE stage")
-            # Remove all results
-            removed_results = 0
-            for match_id, match in matches.items():
-                if "result" in match:
-                    del match["result"]
-                    removed_results += 1
-                
-                if "locked" in match:
-                    match["locked"] = False
-            
-            print(f"Removed results for {removed_results} matches")
-            save_json(MATCHES_FILE, matches)
-            
-            # Reset scores to 0
-            for user_id in users:
-                if "score" in users[user_id]:
-                    users[user_id]["score"] = 0
-            
-            save_json(USERS_FILE, users)
-        
-        # Stage 2 → 1: Remove all predictions
-        elif current_stage == 2 and target_stage == 1:
-            print("Transitioning back to PRE_TOURNAMENT stage")
-            # Save an empty predictions file
-            save_json(PREDICTIONS_FILE, {})
-            
-            # Reset scores to 0
-            for user_id in users:
-                if "score" in users[user_id]:
-                    users[user_id]["score"] = 0
-            
-            save_json(USERS_FILE, users)
-        
-        # Going too many stages backward
-        else:
-            print(f"Transitioning multiple stages back: {current_stage} → {target_stage}")
-            # Process intermediate stages
-            for intermediate_stage in range(current_stage - 1, target_stage - 1, -1):
-                transition_to_stage(intermediate_stage)
-                return True
-    
-    # Update current stage marker
-    save_json(CURRENT_STAGE_FILE, {"current_stage": target_stage})
-    print(f"Successfully transitioned to stage {target_stage}: {STAGES[target_stage]}")
-    display_leaderboard()
-    return True
-
-def load_stage(stage_number, force_reload=False):
-    """Load data from a specific stage."""
+def load_stage(stage_number):
+    """Set up Firebase database for a specific stage."""
     if stage_number < 1 or stage_number > 4:
         print(f"Invalid stage number. Please use 1-4.")
         return False
     
-    current_stage = get_current_stage()
+    print(f"\n=== LOADING STAGE {stage_number}: {STAGES[stage_number]} ===")
     
-    # If we're using force_reload or creating stages for the first time
-    if force_reload or FORCE_RECREATE_STAGES:
-        stage_dir = os.path.join(STAGE_DATA_DIR, f"stage{stage_number}")
-        
-        # If we need to create the stages
-        if FORCE_RECREATE_STAGES or not os.path.exists(stage_dir):
-            print(f"Stage {stage_number} data not found or force recreate is enabled. Creating all stages...")
-            create_all_stages()
-        
-        print(f"\n=== LOADING STAGE {stage_number}: {STAGES[stage_number]} ===")
-        
-        # Copy stage files to data directory
-        shutil.copy(os.path.join(stage_dir, "matches.json"), MATCHES_FILE)
-        shutil.copy(os.path.join(stage_dir, "users.json"), USERS_FILE)
-        shutil.copy(os.path.join(stage_dir, "predictions.json"), PREDICTIONS_FILE)
-        shutil.copy(os.path.join(stage_dir, "current_stage.json"), CURRENT_STAGE_FILE)
-        
-        # Verify years are correct in the matches file
-        matches = load_json(MATCHES_FILE)
-        matches, year_updated = update_match_years(matches)
-        if year_updated:
-            print("Updated match years to 2025")
-            save_json(MATCHES_FILE, matches)
-        
-        print(f"Stage {stage_number} loaded. You can now run the bot to test this stage.")
-        display_leaderboard()
-        return True
+    # Create stage data progressively
+    if stage_number >= 1:
+        matches, users = prepare_stage_1()
     
-    # If we're transitioning between stages
-    else:
-        return transition_to_stage(stage_number)
-
-def create_all_stages():
-    """Create all stages from scratch."""
-    # Backup current data
-    backup_data()
+    if stage_number >= 2:
+        predictions = prepare_stage_2(matches, users)
     
-    # Create stage data
-    matches, users = prepare_stage_1()
-    predictions = prepare_stage_2(matches, users)
-    prepare_stage_3(matches, users, predictions)
-    prepare_stage_4(matches, users, predictions)
+    if stage_number >= 3:
+        prepare_stage_3(matches, users, predictions)
     
-    print("\n=== ALL STAGES CREATED ===")
+    if stage_number >= 4:
+        prepare_stage_4(matches, users, predictions)
+    
+    print(f"Stage {stage_number} loaded. You can now run the bot to test this stage.")
+    display_leaderboard()
+    return True
 
 def main():
     """Run the staged test creation."""
     print("=== Club World Cup 2025 Prediction Bot Staged Test ===")
     
     # Check if we're loading a specific stage
+    import sys
     if len(sys.argv) > 1:
         try:
             stage_number = int(sys.argv[1])
             
-            # Check for --reload flag
-            force_reload = "--reload" in sys.argv
-            
-            if load_stage(stage_number, force_reload):
+            if load_stage(stage_number):
                 print(f"\nStage {stage_number} loaded. Run your bot to test this stage.")
-                if force_reload:
-                    print("Note: Data was completely reloaded from stage snapshots.")
-                else:
-                    print("Note: Current data was preserved and transitioned to the new stage.")
                 print("To run the bot: python run_bot.py")
             return
         except ValueError:
             print("Invalid stage number. Please provide a number 1-4.")
             return
     
-    # Create all stages
-    print("This script will create test data for all tournament stages.")
-    print("Press Enter to continue or Ctrl+C to cancel...")
-    input()
+    # Show available stages
+    print("This script sets up Firebase test data for different tournament stages.")
+    print("Usage: python staged_test.py [stage_number]")
+    print("\nAvailable stages:")
+    for stage_num, stage_name in STAGES.items():
+        print(f"  {stage_num}: {stage_name}")
     
-    create_all_stages()
-    
-    print("You can now load any stage using:")
-    print("  python staged_test.py [stage_number]")
-    print("  Add --reload to reset the stage completely instead of transitioning")
-    print("\nWhere stage_number is:")
-    print("  1: Before the tournament starts (all matches available for prediction)")
-    print("  2: Users made predictions, but no games played yet")
-    print("  3: First day completed, some matches have results")
-    print("  4: Tournament finished, all matches have results")
-    
-    # Show the final leaderboard
-    display_leaderboard()
+    print("\nExample: python staged_test.py 2")
+    print("This will set up the Firebase database for stage 2 (PREDICTIONS_MADE)")
 
 if __name__ == "__main__":
     main() 

@@ -28,6 +28,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+serviceAccountKey.json
 
 # IDEs and editors
 .idea/
