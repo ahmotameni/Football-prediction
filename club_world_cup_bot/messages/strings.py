@@ -87,6 +87,24 @@ Once whitelisted, you'll be able to:
 • View and predict matches
 • See leaderboards
 • Access all bot features
+
+🚫 دسترسی محدود شده
+
+برای استفاده از این ربات نیاز به تایید دارید. لطفا پس از پرداخت هزینه ورودی با ادمین تماس بگیرید تا در لیست سفید قرار بگیرید.
+
+پس از تایید، می‌توانید:
+• مسابقات را مشاهده و پیش‌بینی کنید
+• جدول امتیازات را ببینید
+• به تمام ویژگی‌های ربات دسترسی داشته باشید
+
+🚫 Accesso Limitato
+
+Devi essere approvato per utilizzare questo bot. Contatta l'amministratore dopo aver pagato la quota di iscrizione per essere inserito nella whitelist.
+
+Una volta approvato, potrai:
+• Visualizzare e prevedere le partite
+• Vedere le classifiche
+• Accedere a tutte le funzionalità del bot
 """
 
 USER_WHITELISTED_SUCCESS = "✅ User {} has been successfully whitelisted!"
