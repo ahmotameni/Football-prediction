@@ -44,6 +44,36 @@ The matches interface allows you to:
 • See your predictions marked with ✅
 • View results for completed matches 🏁
 • Check points earned for each prediction
+
+از دکمه‌های کیبورد برای هدایت ربات استفاده کنید:
+
+⚽ مسابقات - مشاهده تمام مسابقات و پیش‌بینی
+📋 پیش‌بینی‌های من - مشاهده پیش‌بینی‌های فعلی شما
+🏆 جدول امتیازات - مشاهده رتبه‌بندی فعلی
+🥇 رتبه من - مشاهده موقعیت شما در جدول امتیازات
+❓ راهنما - نمایش این پیام راهنما
+
+رابط مسابقات به شما امکان می‌دهد:
+• مشاهده مسابقات آینده با ⏳
+• پیش‌بینی با کلیک روی مسابقات
+• مشاهده پیش‌بینی‌های شما با علامت ✅
+• مشاهده نتایج مسابقات تمام شده 🏁
+• بررسی امتیازات کسب شده برای هر پیش‌بینی
+
+Usa i pulsanti della tastiera per navigare nel bot:
+
+⚽ Partite - Visualizza tutte le partite e fai previsioni
+📋 Le mie previsioni - Visualizza le tue previsioni attuali
+🏆 Classifica - Visualizza la classifica attuale
+🥇 Il mio rango - Vedi la tua posizione in classifica
+❓ Aiuto - Mostra questo messaggio di aiuto
+
+L'interfaccia delle partite ti permette di:
+• Vedere le partite imminenti con ⏳
+• Fare previsioni toccando le partite
+• Vedere le tue previsioni contrassegnate con ✅
+• Visualizzare i risultati delle partite completate 🏁
+• Controllare i punti guadagnati per ogni previsione
 """
 
 # Prediction messages
