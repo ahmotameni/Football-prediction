@@ -11,6 +11,22 @@ Make predictions for upcoming matches and compete with friends and family!
 Use the command buttons below to navigate the bot.
 
 Good luck! ⚽🍀
+
+به ربات پیش‌بینی جام باشگاه‌های جهان 2025 خوش آمدید! 🏆⚽
+
+پیش‌بینی‌های خود را برای مسابقات آینده انجام دهید و با دوستان و خانواده رقابت کنید!
+
+از دکمه‌های دستوری زیر برای هدایت ربات استفاده کنید.
+
+موفق باشید! ⚽🍀
+
+Benvenuto al Bot di Previsioni della Coppa del Mondo per Club 2025! 🏆⚽
+
+Fai previsioni per le partite imminenti e competi con amici e famiglia!
+
+Usa i pulsanti dei comandi qui sotto per navigare nel bot.
+
+Buona fortuna! ⚽🍀
 """
 
 HELP_MESSAGE = """
@@ -23,10 +39,10 @@ Use the keyboard buttons to navigate the bot:
 ❓ Help - Show this help message
 
 The matches interface allows you to:
-• See upcoming matches with ⚽
+• See upcoming matches with ⏳
 • Make predictions by tapping on matches
-• See your predictions marked with 🔮
-• View results for completed matches ✅
+• See your predictions marked with ✅
+• View results for completed matches 🏁
 • Check points earned for each prediction
 """
 
