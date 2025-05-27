@@ -1,7 +1,7 @@
 """
 Service for handling match predictions using Firebase Realtime Database.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from ..firebase_helpers import (
     get_all_users, save_user, get_user,
     get_all_matches, save_match, add_match, update_match,
@@ -26,7 +26,8 @@ def get_upcoming_matches():
     for match_id, match in matches.items():
         try:
             match_time = datetime.strptime(match['time'], '%Y-%m-%d %H:%M')
-            if match_time > now and not match.get('locked', False):
+            # Allow predictions until 1 hour after match starts (timezone hotfix)
+            if match_time + timedelta(hours=1) > now and not match.get('locked', False):
                 upcoming[match_id] = match
         except (ValueError, KeyError) as e:
             print(f"Error processing match {match_id}: {e}")
@@ -245,7 +246,8 @@ def lock_expired_matches():
     for match_id, match in matches.items():
         try:
             match_time = datetime.strptime(match['time'], '%Y-%m-%d %H:%M')
-            if match_time <= now and not match.get('locked', False):
+            # Lock matches 1 hour after they start (timezone hotfix)
+            if match_time + timedelta(hours=1) <= now and not match.get('locked', False):
                 match['locked'] = True
                 save_match(match_id, match)
                 updated = True
