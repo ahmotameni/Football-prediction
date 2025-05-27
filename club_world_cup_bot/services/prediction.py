@@ -9,7 +9,7 @@ from ..firebase_helpers import (
 )
 
 # Configuration: How many hours before match start to lock predictions
-PREDICTION_LOCK_HOURS_BEFORE = 2
+PREDICTION_LOCK_HOURS_BEFORE = 3
 
 def get_matches():
     """Get all matches."""
