@@ -97,7 +97,7 @@ Legend:
 ⏳ - Upcoming match
 ✅ - You have predicted
 🔒 - Locked (no longer accepting predictions)
-⚽ - Ongoing match
+🏟️ - Ongoing match
 🏁 - Match finished
 """
 NO_MATCH_RESULTS = "Match results not available yet."

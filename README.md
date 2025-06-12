@@ -157,7 +157,7 @@ The bot features an intuitive interface with emoji status indicators:
 - ⏳ Upcoming matches ready for prediction
 - ✅ Matches you've already predicted
 - 🔒 Locked matches (no longer accepting predictions)
-- ⚽ Ongoing matches
+- 🏟️ Ongoing matches
 - 🏁 Completed matches with results
 
 Users can view all matches, make predictions, and see their scoring results all in one interface.
