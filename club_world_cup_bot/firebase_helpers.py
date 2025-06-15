@@ -125,11 +125,23 @@ def get_all_predictions():
             return {}
         elif isinstance(predictions, list):
             # Convert list to dictionary if needed
-            return {str(i): pred for i, pred in enumerate(predictions) if pred is not None}
-        elif isinstance(predictions, dict):
-            return predictions
-        else:
+            predictions = {str(i): pred for i, pred in enumerate(predictions) if pred is not None}
+        elif not isinstance(predictions, dict):
             return {}
+        
+        # Ensure each user's predictions are also dictionaries
+        cleaned_predictions = {}
+        for user_id, user_predictions in predictions.items():
+            if user_predictions is None:
+                continue
+            elif isinstance(user_predictions, list):
+                # Convert user predictions list to dictionary using index as match_id
+                cleaned_predictions[user_id] = {str(i): pred for i, pred in enumerate(user_predictions) if pred is not None}
+            elif isinstance(user_predictions, dict):
+                cleaned_predictions[user_id] = user_predictions
+            # Skip if not dict or list
+        
+        return cleaned_predictions
     except Exception as e:
         print(f"Error getting predictions: {e}")
         return {}
