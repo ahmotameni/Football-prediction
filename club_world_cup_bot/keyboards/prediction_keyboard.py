@@ -4,13 +4,20 @@ Inline keyboards for match predictions.
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+def format_time_compact(time_str):
+    """Format time for compact display in keyboards by removing year prefix."""
+    if time_str.startswith("2025-"):
+        return time_str[5:]  # Remove "2025-" prefix
+    return time_str
+
 def get_matches_keyboard(matches):
     """Generate a keyboard with available matches to predict."""
     kb = InlineKeyboardBuilder()
     
     for match_id, match in matches.items():
         if not match.get("locked", False):
-            button_text = f"{match['team1']} vs {match['team2']} - {match['time']}"
+            formatted_time = format_time_compact(match['time'])
+            button_text = f"{match['team1']} vs {match['team2']} - {formatted_time}"
             kb.button(text=button_text, callback_data=f"match_{match_id}")
     
     return kb.adjust(1).as_markup()
@@ -95,7 +102,8 @@ def get_match_list_keyboard(matches, is_admin=False):
     for match_id, match in matches.items():
         prefix = "adminmatch_" if is_admin else "viewmatch_"
         status = "🏁" if "result" in match else "⏳"
-        button_text = f"{status} {match['team1']} vs {match['team2']} - {match['time']}"
+        formatted_time = format_time_compact(match['time'])
+        button_text = f"{status} {match['team1']} vs {match['team2']} - {formatted_time}"
         kb.button(text=button_text, callback_data=f"{prefix}{match_id}")
     
     return kb.adjust(1).as_markup()
@@ -138,8 +146,8 @@ def get_enhanced_matches_keyboard(matches, user_predictions=None):
             emoji = "⏳ "
             callback = f"match_{match_id}"
         
-        # Format time to be more readable
-        match_time = match['time']
+        # Format time to be more readable (compact for keyboards)
+        match_time = format_time_compact(match['time'])
         
         # Create button text with prediction info if available
         button_text = f"{emoji}{match['team1']} vs {match['team2']} - {match_time}"
