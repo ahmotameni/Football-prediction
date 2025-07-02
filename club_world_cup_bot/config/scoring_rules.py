@@ -16,6 +16,12 @@ SCORING_RULES = {
     # Points for predicting correct resolution type (ET/PEN) and winner for knockout matches after tie
     "CORRECT_RESOLUTION_TYPE": 2,
     
+    # NEW: Points for predicting correct knockout winner (separate from resolution)
+    "CORRECT_KO_WINNER": 1,
+    
+    # NEW: Points for predicting correct knockout resolution type (separate from winner)
+    "CORRECT_KO_RESOLUTION": 1,
+    
     # Points for completely wrong prediction
     "WRONG_PREDICTION": -1
 } 

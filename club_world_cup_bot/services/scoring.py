@@ -11,7 +11,7 @@ from ..firebase_helpers import (
     get_all_predictions
 )
 
-def calculate_score(prediction, result):
+def calculate_score(prediction, result, match=None):
     """Calculate score for a single prediction."""
     score = 0
     
@@ -27,34 +27,71 @@ def calculate_score(prediction, result):
     pred_winner = 1 if pred_home > pred_away else (2 if pred_home < pred_away else 0)
     result_winner = 1 if result_home > result_away else (2 if result_home < result_away else 0)
     
-    # Check if prediction is completely wrong for 90 minutes result
-    if pred_winner != result_winner:
-        return SCORING_RULES["WRONG_PREDICTION"]
+    # Check if this is a knockout match
+    is_knockout = match and match.get('is_knockout', False)
     
-    # Correct winner for 90 minutes
-    score += SCORING_RULES["CORRECT_WINNER"]
+    if is_knockout:
+        # === NEW KNOCKOUT SCORING LOGIC ===
+        
+        # Check if prediction is completely wrong for 90 minutes result
+        if pred_winner != result_winner:
+            score += SCORING_RULES["WRONG_PREDICTION"]
+        else:
+            # Correct winner for 90 minutes
+            score += SCORING_RULES["CORRECT_WINNER"]
+        
+        # Correct goal difference
+        pred_diff = pred_home - pred_away
+        result_diff = result_home - result_away
+        if pred_diff == result_diff:
+            score += SCORING_RULES["CORRECT_GOAL_DIFF"]
+        
+        # Exact score
+        if pred_home == result_home and pred_away == result_away:
+            score += SCORING_RULES["EXACT_SCORE"]
+        
+        # NEW: Separate knockout winner and resolution scoring
+        if 'resolution_type' in result and 'resolution_type' in prediction:
+            # Determine the final knockout winner
+            if result_winner == 0:  # Match was a draw in 90 minutes
+                final_result_winner = result.get('knockout_winner')
+            else:  # Non-draw in 90 minutes
+                final_result_winner = str(result_winner)
+            
+            if pred_winner == 0:  # User predicted a draw in 90 minutes
+                final_pred_winner = prediction.get('knockout_winner')
+            else:  # User predicted non-draw in 90 minutes
+                final_pred_winner = str(pred_winner)
+            
+            # Award points for correct knockout winner
+            if final_pred_winner == final_result_winner:
+                score += SCORING_RULES["CORRECT_KO_WINNER"]
+            
+            # Award points for correct resolution type
+            # Only award resolution points if they got the 90-minute winner correct
+            # (to prevent getting resolution bonus when completely wrong)
+            if prediction['resolution_type'] == result['resolution_type'] and pred_winner == result_winner:
+                score += SCORING_RULES["CORRECT_KO_RESOLUTION"]
     
-    # Correct goal difference
-    pred_diff = pred_home - pred_away
-    result_diff = result_home - result_away
-    if pred_diff == result_diff:
-        score += SCORING_RULES["CORRECT_GOAL_DIFF"]
-    
-    # Exact score
-    if pred_home == result_home and pred_away == result_away:
-        score += SCORING_RULES["EXACT_SCORE"]
-    
-    # For knockout matches, check resolution type regardless of tie/non-tie
-    if 'resolution_type' in result and 'resolution_type' in prediction:
-        # For ties in 90 minutes
-        if result_winner == 0 and pred_winner == 0:
-            # Check both resolution type and knockout winner
-            if (prediction['resolution_type'] == result['resolution_type'] and
-                prediction.get('knockout_winner') == result.get('knockout_winner')):
-                score += SCORING_RULES["CORRECT_RESOLUTION_TYPE"]
-        # For non-tie matches, just check if resolution type is correct (should be FT)
-        elif prediction['resolution_type'] == result['resolution_type']:
-            score += SCORING_RULES["CORRECT_RESOLUTION_TYPE"]
+    else:
+        # === ORIGINAL SCORING LOGIC FOR GROUP STAGE ===
+        
+        # Check if prediction is completely wrong for 90 minutes result
+        if pred_winner != result_winner:
+            return SCORING_RULES["WRONG_PREDICTION"]
+        
+        # Correct winner for 90 minutes
+        score += SCORING_RULES["CORRECT_WINNER"]
+        
+        # Correct goal difference
+        pred_diff = pred_home - pred_away
+        result_diff = result_home - result_away
+        if pred_diff == result_diff:
+            score += SCORING_RULES["CORRECT_GOAL_DIFF"]
+        
+        # Exact score
+        if pred_home == result_home and pred_away == result_away:
+            score += SCORING_RULES["EXACT_SCORE"]
     
     return score
 
@@ -91,7 +128,7 @@ def update_leaderboard():
         for match_id, prediction in user_predictions.items():
             try:
                 if match_id in matches and 'result' in matches[match_id]:
-                    match_score = calculate_score(prediction, matches[match_id]['result'])
+                    match_score = calculate_score(prediction, matches[match_id]['result'], matches[match_id])
                     total_score += match_score
             except Exception as e:
                 print(f"Error calculating score for user {user_id}, match {match_id}: {e}")

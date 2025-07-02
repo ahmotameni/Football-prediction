@@ -531,7 +531,7 @@ async def process_view_result(callback: CallbackQuery):
                 pred_text += " (Full Time)"
         
         # Calculate points earned
-        points = calculate_score(pred, result)
+        points = calculate_score(pred, result, match)
         
         response += (
             f"🔮 Your prediction: {pred_text}\n"

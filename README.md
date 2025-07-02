@@ -148,7 +148,34 @@ Firebase Realtime Database structure:
 ---
 
 ## 🏆 Scoring System
-You can customize the scoring logic in `config/scoring_rules.py`. All calculations are done dynamically using these rules.
+
+### Standard Matches (Group Stage)
+- **Correct Winner**: +1 point
+- **Correct Goal Difference**: +1 point  
+- **Exact Score**: +1 point
+- **Wrong Prediction**: -1 point
+
+### Knockout Matches (New Enhanced System)
+For knockout matches, we use a fairer dual-scoring approach:
+
+**Regular Time Predictions:**
+- All group stage rules apply for the 90-minute score
+
+**Knockout Resolution Scoring:**
+- **Correct Knockout Winner**: +1 point (separate from resolution method)
+- **Correct Resolution Method**: +1 point (FT/ET/PEN, separate from winner)
+- **Both Correct**: +2 points total
+- **Wrong Prediction**: -1 point
+
+**Examples:**
+- Predict: Team A wins in FT → Result: Team A wins in ET = 0 points (wrong pred -1, correct winner +1)
+- Predict: Team A wins in ET → Result: Team A wins in ET = +2 points (both correct)
+- Predict: Team A wins in PEN → Result: Team B wins in FT = -1 point (both wrong)
+
+This system rewards users who get either the winner OR the resolution method correct, making knockout predictions more fair and strategic.
+
+### Customization
+You can modify the scoring logic in `config/scoring_rules.py`. All calculations are done dynamically using these rules.
 
 ---
 
